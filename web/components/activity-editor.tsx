@@ -5,6 +5,7 @@ import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
 import { saveActivity } from "@/lib/actions/catalog";
 import { ACTIVITY_TYPES, type ActType } from "@/lib/activity-types";
+import { buildConfig, parseFaq, parseItems, type Faq, type Item } from "@/lib/activity-config";
 import type { Database, Json } from "@/lib/database.types";
 
 type Activity = Database["public"]["Tables"]["service_activities"]["Row"];
@@ -14,7 +15,10 @@ type ChecklistItem = { key: string; label: string; due_days?: number | null };
 const PARTICIPANTS = [["all", "Toda la unidad"], ["each_member", "Cada miembro"], ["member_1", "Solo persona 1"], ["member_2", "Solo persona 2"]] as const;
 
 const USES = {
-  asset: ["video_module", "reading", "homework"],
+  asset: ["video_module", "reading", "homework", "contract", "group_session"],
+  items: ["video_module", "reading", "homework"],
+  faq: ["contract"],
+  sessionLabel: ["therapy_session"],
   form: ["form", "homework"],
   contract: ["contract"],
   url: ["external_link", "reading"],
@@ -36,29 +40,37 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
 }) {
   const a = activity;
   const cfg = (a?.config ?? {}) as Record<string, Json>;
-  const { url: url0, checklist: list0, ...rest } = cfg;
+  const { url: url0, checklist: list0, session_label: label0 } = cfg;
+  // Lo que tiene campo propio no se repite en el JSON avanzado.
+  const rest = Object.fromEntries(Object.entries(cfg).filter(([k]) => !["url", "checklist", "session_label", "items", "faq"].includes(k)));
   const [type, setType] = useState<ActType>(a?.type ?? "video_module");
   const [url, setUrl] = useState(typeof url0 === "string" ? url0 : "");
   const [items, setItems] = useState<ChecklistItem[]>(Array.isArray(list0) ? (list0 as ChecklistItem[]) : []);
   const [extra, setExtra] = useState(Object.keys(rest).length ? JSON.stringify(rest, null, 2) : "");
+  const [label, setLabel] = useState(typeof label0 === "string" ? label0 : "");
+  const [extraItems, setExtraItems] = useState<Item[]>(parseItems(cfg));
+  const [faq, setFaq] = useState<Faq[]>(parseFaq(cfg));
 
   const config = (() => {
     let base: Record<string, unknown> = {};
     if (extra.trim()) {
       try { base = JSON.parse(extra); } catch { return extra; } // el servidor avisa de que no es JSON válido
     }
-    if (url.trim()) base.url = url.trim();
     const clean = items.filter((i) => i.label.trim());
-    if (clean.length) {
-      const taken = new Set<string>();
-      base.checklist = clean.map((i) => {
-        let key = i.key || slug(i.label);
-        for (let n = 2; taken.has(key); n++) key = `${slug(i.label)}_${n}`;
-        taken.add(key);
-        return { key, label: i.label.trim(), due_days: i.due_days ?? 0 };
-      });
-    }
-    return JSON.stringify(base);
+    const taken = new Set<string>();
+    const checklist = clean.map((i) => {
+      let key = i.key || slug(i.label);
+      for (let n = 2; taken.has(key); n++) key = `${slug(i.label)}_${n}`;
+      taken.add(key);
+      return { key, label: i.label.trim(), due_days: i.due_days ?? 0 };
+    });
+    return JSON.stringify(buildConfig(base, {
+      url,
+      checklist,
+      sessionLabel: uses("sessionLabel", type) ? label : "",
+      items: uses("items", type) ? extraItems : [],
+      faq: uses("faq", type) ? faq : [],
+    }));
   })();
 
   const selectedForm = forms.find((f) => f.versions.some((v) => v.id === a?.form_version_id));
@@ -82,7 +94,7 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
         <div className="field wide"><label htmlFor={`s-${a?.id}`}>Resumen</label><input id={`s-${a?.id}`} className="input" name="summary" defaultValue={a?.summary ?? ""} placeholder="Una línea: qué pasa en esta actividad" /></div>
 
         {uses("asset", type) && (
-          <div className="field"><label>Video o archivo</label>
+          <div className="field"><label>{type === "contract" ? "Video de preguntas frecuentes" : type === "group_session" ? "Video de presentación" : "Video o archivo"}</label>
             <select className="input" name="asset" defaultValue={a?.asset_id ?? ""}>
               <option value="">—</option>{assets.map((x) => <option key={x.id} value={x.id}>{x.kind === "video" ? "🎬" : "📄"} {x.title}</option>)}
             </select>
@@ -120,6 +132,12 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
             <span className="hint">Créalo abajo, en «Contratos».</span>
           </div>
         )}
+        {uses("sessionLabel", type) && (
+          <div className="field wide"><label>Tipo de sesión (lo ve la pareja)</label>
+            <input className="input" value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ej.: Sesión de terapia de pareja · Sesión individual · Sesión de coaching en pareja" />
+            <span className="hint">Si lo dejas vacío: «Sesión individual» o «Sesión de terapia de pareja» según quién participa.</span>
+          </div>
+        )}
         {uses("url", type) && (
           <div className="field wide"><label>Enlace</label><input className="input" type="url" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://…" /></div>
         )}
@@ -134,6 +152,46 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
           <select className="input" name="participants" defaultValue={a?.participants ?? "all"}>{PARTICIPANTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
         </div>
       </div>
+
+      {uses("items", type) && (
+        <div className="field">
+          <label>Más contenido (se despliega en el módulo)</label>
+          <div className="ae-list">
+            {extraItems.map((it, i) => (
+              <div className="row" key={i}>
+                <select className="input" value={it.asset_id} aria-label={`Contenido ${i + 1}`}
+                  onChange={(e) => setExtraItems(extraItems.map((x, j) => (j === i ? { ...x, asset_id: e.target.value } : x)))}>
+                  <option value="">—</option>{assets.map((x) => <option key={x.id} value={x.id}>{x.kind === "video" ? "🎬" : "📄"} {x.title}</option>)}
+                </select>
+                <input className="input" value={it.title} placeholder="Título (p. ej. Validación emocional)" aria-label="Título"
+                  onChange={(e) => setExtraItems(extraItems.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
+                <button type="button" className="btn ghost sm" aria-label="Quitar" onClick={() => setExtraItems(extraItems.filter((_, j) => j !== i))}>×</button>
+              </div>
+            ))}
+            <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setExtraItems([...extraItems, { asset_id: "", title: "" }])}>+ Añadir video o recurso</button>
+          </div>
+        </div>
+      )}
+
+      {uses("faq", type) && (
+        <div className="field">
+          <label>Preguntas frecuentes</label>
+          <div className="ae-list">
+            {faq.map((f, i) => (
+              <div className="row" key={i} style={{ alignItems: "flex-start" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, flex: 1 }}>
+                  <input className="input" value={f.q} placeholder="Pregunta" aria-label={`Pregunta ${i + 1}`}
+                    onChange={(e) => setFaq(faq.map((x, j) => (j === i ? { ...x, q: e.target.value } : x)))} />
+                  <textarea className="input" value={f.a} placeholder="Respuesta" aria-label={`Respuesta ${i + 1}`} rows={3}
+                    onChange={(e) => setFaq(faq.map((x, j) => (j === i ? { ...x, a: e.target.value } : x)))} />
+                </div>
+                <button type="button" className="btn ghost sm" aria-label="Quitar" onClick={() => setFaq(faq.filter((_, j) => j !== i))}>×</button>
+              </div>
+            ))}
+            <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setFaq([...faq, { q: "", a: "" }])}>+ Añadir pregunta</button>
+          </div>
+        </div>
+      )}
 
       {uses("checklist", type) && (
         <div className="field">
