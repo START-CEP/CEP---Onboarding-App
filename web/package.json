@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --test --experimental-strip-types --no-warnings \"tests/**/*.test.ts\""
+    "test": "TZ=UTC node --test --experimental-strip-types --no-warnings \"tests/**/*.test.ts\""
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.7",

@@ -6,7 +6,7 @@ import { getHub, type Hub } from "@/lib/data/hub";
 import { getStaff } from "@/lib/data/staff";
 import {
   blocksOf, currentStep, firstName, fmtDay, fmtTime, nextSessionInfo, roleClass, staffFor, stepLabel,
-  lateActivities, stepRequirements, stepTarget, todayActions, trackLines, upcoming, weekGrid, weekOf,
+  lateActivities, stepRequirements, stepTarget, todayActions, trackLines, upcoming, weekGrid, weekOf, type SessionInfo,
 } from "@/lib/process";
 
 export default function ProcessPage() {
@@ -83,6 +83,16 @@ async function Process() {
   );
 }
 
+const COUNT_K: Record<SessionInfo["state"], string> = {
+  booked: "Su siguiente sesión", requested: "Solicitud enviada", ready: "Por agendar", blocked: "Por agendar",
+  upcoming: "Su siguiente sesión", partner: "Su siguiente sesión", closing: "Sesión por cerrar",
+};
+const COUNT_WHY: Record<SessionInfo["state"], string> = {
+  booked: "", requested: "El equipo les confirmará la hora.", ready: "Ya pueden agendarla.",
+  blocked: "Aún no pueden agendarla: les faltan requisitos.", upcoming: "Se abre cuando terminen el paso anterior.",
+  partner: "Es la sesión individual de tu pareja.", closing: "El equipo la marcará como hecha en breve.",
+};
+
 function StatusChip({ hub }: { hub: Hub }) {
   const late = lateActivities(hub).length;
   if (late > 0) {
@@ -123,9 +133,9 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
             {next.days === null ? <Icon name="cal" size={30} /> : next.days === 0 ? "Hoy" : <>{next.days}<small>{next.days === 1 ? "día" : "días"}</small></>}
           </div>
           <div className="tx">
-            <span className="k">{next.days === null ? (next.state === "requested" ? "Solicitud enviada" : "Su siguiente sesión") : next.days === 0 ? "Su sesión es hoy" : "Faltan para su siguiente sesión"}</span>
+            <span className="k">{next.days === null ? COUNT_K[next.state] : next.days === 0 ? "Su sesión es hoy" : "Faltan para su siguiente sesión"}</span>
             <b>{next.title}{next.staffName ? ` · con ${firstName(next.staffName)}` : ""}</b>
-            <span className="why">{next.when ? `${fmtDay(next.when)} · ${fmtTime(next.when)}` : next.state === "blocked" ? "Aún no pueden agendarla: les falta un requisito." : next.state === "ready" ? "Ya pueden agendarla." : "El equipo les confirmará la hora."}</span>
+            <span className="why">{next.state === "booked" && next.when ? `${fmtDay(next.when)} · ${fmtTime(next.when)}` : COUNT_WHY[next.state]}</span>
           </div>
           <Link className="btn" href={next.cta.href} {...(next.cta.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>{next.cta.label} <Icon name="arrow" size={16} /></Link>
         </div>

@@ -2,7 +2,6 @@
 
 import { useActionState, useRef, useState, useTransition } from "react";
 import { changePassword, saveAvatar, saveBio, savePrefs, updateProfile, type AccountState } from "@/lib/actions/account";
-import { TIMEZONES } from "@/lib/timezones";
 import { createClient } from "@/lib/supabase/client";
 
 export function AvatarForm({ uid, initial, photo }: { uid: string; initial: string; photo: string | null }) {
@@ -94,19 +93,14 @@ export function ChangePasswordForm() {
 
 type Prefs = { app_notices?: boolean; remind_email?: boolean; remind_whatsapp?: boolean };
 
-export function PrefsForm({ prefs, timezone }: { prefs: Prefs; timezone: string }) {
+export function PrefsForm({ prefs }: { prefs: Prefs }) {
   const [state, action, pending] = useActionState<AccountState, FormData>(savePrefs, {});
   return (
     <form action={action} className="qblock" style={{ gap: 12 }}>
       <label className="check"><input type="checkbox" name="app_notices" defaultChecked={prefs.app_notices !== false} /> Avisos dentro de la app (la campana)</label>
-      <label className="check"><input type="checkbox" name="remind_email" defaultChecked={prefs.remind_email !== false} /> Recordatorios de sesiones y tareas por correo</label>
-      <label className="check"><input type="checkbox" name="remind_whatsapp" defaultChecked={prefs.remind_whatsapp !== false} /> Recordatorios por WhatsApp</label>
-      <div className="field">
-        <label htmlFor="timezone">Tu zona horaria</label>
-        <select className="input" id="timezone" name="timezone" defaultValue={timezone} style={{ maxWidth: 320 }}>
-          {TIMEZONES.map(([z, l]) => <option key={z} value={z}>{l}</option>)}
-        </select>
-      </div>
+      <label className="check"><input type="checkbox" name="remind_email" defaultChecked={prefs.remind_email !== false} /> Recordatorios de sesiones y tareas por correo <span className="chip">Próximamente</span></label>
+      <label className="check"><input type="checkbox" name="remind_whatsapp" defaultChecked={prefs.remind_whatsapp !== false} /> Recordatorios por WhatsApp <span className="chip">Próximamente</span></label>
+      <span className="hint">Los recordatorios por correo y WhatsApp se activarán pronto; tu elección queda guardada. Las horas se muestran en hora de Ciudad de México.</span>
       {state.error && <p className="formerr" role="alert">{state.error}</p>}
       {state.ok && <p className="formok" role="status">{state.ok}</p>}
       <button className="btn" type="submit" disabled={pending} style={{ alignSelf: "flex-start" }}>{pending ? "Guardando…" : "Guardar preferencias"}</button>

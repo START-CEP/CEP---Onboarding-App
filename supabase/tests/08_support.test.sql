@@ -2,7 +2,7 @@
 begin;
 set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
-select plan(15);
+select plan(18);
 
 create function pg_temp.as_user(p uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p, 'role', 'authenticated')::text, true);
@@ -20,7 +20,10 @@ select lives_ok($$ insert into support_messages (ticket_id, body) select id, '¿
 select is((select status from support_tickets where subject = 'Factura'), 'open', 'La consulta queda abierta');
 select throws_ok($$ update support_tickets set status = 'answered' where subject = 'Factura' $$, '42501', null, 'Pedro no puede marcarla como respondida');
 reset role;
-select is((select count(*)::int from staff_tasks where title = 'Responder consulta: Factura'), 1, 'El equipo recibe una tarea para responder');
+select is((select count(*)::int from staff_tasks where title like '%responder consulta de soporte' and created_at = now()), 1,
+          'El equipo recibe una tarea para responder');
+select is((select count(*)::int from staff_tasks where created_at = now() and (title like '%Factura%' or description like '%factura%')), 0,
+          'La tarea no copia el asunto ni el texto de la consulta');
 
 -- Andrea ve la compartida, no la privada, y no puede editarla.
 select pg_temp.as_user('b0000000-0000-4000-8000-000000000002');
@@ -52,6 +55,16 @@ select is((select count(*)::int from support_tickets where subject = 'Privada an
 select throws_ok($$ insert into support_messages (ticket_id, body) values ((select id from t_tk), 'hola') $$,
                  '42501', null, 'Quien ya no es miembro no puede escribir');
 reset role;
+
+-- Responsables: alguien solo de ventas no puede quedar en el equipo de una pareja.
+insert into auth.users (id, email, aud, role) values ('c0000000-0000-4000-8000-000000000032', 'solo-ventas@example.com', 'authenticated', 'authenticated');
+insert into staff_members (profile_id, title) values ('c0000000-0000-4000-8000-000000000032', 'Ventas');
+insert into staff_roles (profile_id, role) values ('c0000000-0000-4000-8000-000000000032', 'sales');
+select throws_ok($$ update enrollment_staff set staff_profile_id = 'c0000000-0000-4000-8000-000000000032'
+                    where enrollment_id = (select id from t_e) and care_role_id = (select id from care_roles where key = 'psychologist') $$,
+                 '42501', null, 'No se puede asignar a alguien solo de ventas');
+select lives_ok($$ update enrollment_staff set staff_profile_id = staff_profile_id where enrollment_id = (select id from t_e) $$,
+                'Las asignaciones válidas siguen funcionando');
 
 select * from finish();
 rollback;

@@ -74,3 +74,43 @@ test("el título de la sesión no repite la clave", () => {
   const plain = nextSessionInfo(hub({ steps: [step({ title: "Definir el ciclo", activity_key: "S5" })], activities: [act({})] }))!;
   assert.equal(plain.title, "S5 · Definir el ciclo");
 });
+
+test("sesión agendada que ya pasó y nadie cerró: no dice «Hoy» ni ofrece entrar", () => {
+  const h = hub({ steps: [step({})], activities: [act({})], sessions: [{ id: "x1", enrollment_activity_id: "a1", scheduled_at: "2026-10-10T16:00:00Z", status: "scheduled", meeting_url: "https://meet.example.com/x" }] });
+  const info = nextSessionInfo(h)!;
+  assert.equal(info.state, "closing");
+  assert.equal(info.days, null);
+  assert.notEqual(info.cta.label, "Entrar a la sesión");
+});
+
+test("los días se cuentan en la hora de Ciudad de México, no la del servidor", () => {
+  // 10:00 en CDMX del 14/oct; la sesión es el 14/oct a las 19:00 CDMX (= 15/oct 01:00Z).
+  const h = hub({ today: new Date("2026-10-14T16:00:00Z"), steps: [step({})], activities: [act({})],
+    sessions: [{ id: "x1", enrollment_activity_id: "a1", scheduled_at: "2026-10-15T01:00:00Z", status: "scheduled", meeting_url: "https://meet.example.com/x" }] });
+  const info = nextSessionInfo(h)!;
+  assert.equal(info.days, 0);
+  assert.equal(info.cta.label, "Entrar a la sesión");
+  // La noche anterior (13/oct 19:00 CDMX) todavía falta 1 día.
+  const before = nextSessionInfo({ ...h, today: new Date("2026-10-14T01:00:00Z") })!;
+  assert.equal(before.days, 1);
+});
+
+test("sesión individual del otro miembro: informa, no ofrece agendar", () => {
+  const h = hub({ me: { id: "u2", name: "Andrea Demo" }, steps: [step({ participants: "member_1" })], activities: [act({})] });
+  const info = nextSessionInfo(h)!;
+  assert.equal(info.state, "partner");
+  assert.match(info.title, /Pedro/);
+  assert.notEqual(info.cta.label, "Agendar");
+});
+
+test("sesión de un paso que aún no se abre: no ofrece agendar", () => {
+  const h = hub({ steps: [step({ step_id: "s0", activity_type: "video_module", activity_id: "m1", state: "current" }), step({ state: "locked" })], activities: [act({})] });
+  const info = nextSessionInfo(h)!;
+  assert.equal(info.state, "upcoming");
+  assert.notEqual(info.cta.label, "Agendar");
+});
+
+test("«Lo que viene» usa la misma sesión que la cuenta atrás", () => {
+  const h = hub({ steps: [step({ step_id: "a", activity_key: "S3", state: "locked" }), step({ step_id: "b", activity_key: "S4", activity_id: "a4", state: "current" })], activities: [act({}), act({ activity_id: "a4" })] });
+  assert.equal(upcoming(h)[0].d, "S4");
+});

@@ -47,12 +47,12 @@ export function weekOf(hub: Hub, date: Date | string) {
 export function fmtDay(date: string | Date) {
   // Una fecha sin hora ("2026-09-01") se muestra tal cual, sin desplazarla por la zona horaria.
   const d = typeof date === "string" ? new Date(date.length === 10 ? `${date}T12:00:00Z` : date) : date;
-  return d.toLocaleDateString("es", { day: "numeric", month: "short", timeZone: "America/Mexico_City" }).replace(".", "");
+  return d.toLocaleDateString("es", { day: "numeric", month: "short", timeZone: APP_TZ }).replace(".", "");
 }
 
 export function fmtTime(date: string | Date) {
   const d = typeof date === "string" ? new Date(date) : date;
-  return d.toLocaleTimeString("es", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: "America/Mexico_City" });
+  return d.toLocaleTimeString("es", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: APP_TZ });
 }
 
 // ---------------------------------------------------------------- requisitos y "qué hacer hoy"
@@ -281,9 +281,20 @@ export function blocksOf(hub: Hub) {
 }
 
 // ---------------------------------------------------------------- inicio: próxima sesión y agenda
+/** Zona en la que se muestran fechas y horas (la del equipo). El servidor corre en UTC. */
+export const APP_TZ = "America/Mexico_City";
+const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: APP_TZ, year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+/** Días de calendario (en APP_TZ) entre hoy y una fecha. */
+export function daysUntil(today: Date, when: Date) {
+  return Math.round((Date.parse(`${dayKey(when)}T00:00:00Z`) - Date.parse(`${dayKey(today)}T00:00:00Z`)) / DAY);
+}
+
 export type SessionInfo = {
-  title: string; staffName?: string; roleKey?: string; when: string | null; days: number | null;
-  state: "booked" | "requested" | "ready" | "blocked"; cta: { label: string; href: string };
+  title: string; key: string; staffName?: string; roleKey?: string; when: string | null; days: number | null;
+  /** booked agendada · requested pedida · ready lista para agendar · blocked le faltan requisitos ·
+   *  upcoming su paso aún no se abre · partner es la sesión individual del otro miembro · closing ya pasó y el equipo no la cerró */
+  state: "booked" | "requested" | "ready" | "blocked" | "upcoming" | "partner" | "closing";
+  cta: { label: string; href: string };
 };
 
 /** La sesión de terapia que sigue (la del paso actual o la próxima pendiente) y qué pueden hacer con ella. */
@@ -292,38 +303,56 @@ export function nextSessionInfo(hub: Hub): SessionInfo | null {
   const step = pending.find((s) => s.state === "current") ?? pending[0];
   if (!step) return null;
   const staff = staffFor(hub, step.responsible_role_id);
-  const live = hub.sessions.find((x) => x.enrollment_activity_id === step.activity_id && x.status !== "cancelled" && x.status !== "completed");
   const key = step.activity_key ?? "";
   const title = step.title ?? "";
-  const base = { title: key && !title.startsWith(key) ? `${key} · ${title}` : title, staffName: staff?.personName, roleKey: staff?.roleKey };
-  const anchor = `/terapia#${step.activity_key ?? ""}`;
+  const base = { title: key && !title.startsWith(key) ? `${key} · ${title}` : title, key, staffName: staff?.personName, roleKey: staff?.roleKey };
+  const anchor = `/terapia#${key}`;
+  const none = { when: null, days: null };
+
+  const owner = step.participants === "member_1" ? 1 : step.participants === "member_2" ? 2 : null;
+  const myIndex = hub.members.find((m) => m.profileId === hub.me.id)?.memberIndex;
+  if (owner && myIndex && owner !== myIndex) {
+    const other = hub.members.find((m) => m.memberIndex === owner);
+    return { ...base, ...none, title: `${base.title} · sesión individual de ${firstName(other?.name ?? "tu pareja")}`, state: "partner", cta: { label: "Ver sesiones", href: "/terapia" } };
+  }
+
+  const live = hub.sessions.find((x) => x.enrollment_activity_id === step.activity_id && x.status !== "cancelled" && x.status !== "completed");
   if (live?.scheduled_at && live.status === "scheduled") {
-    const days = Math.max(0, Math.round((startOfDay(new Date(live.scheduled_at)).getTime() - startOfDay(hub.today).getTime()) / DAY));
+    const at = new Date(live.scheduled_at);
+    if (at.getTime() < hub.today.getTime() - 2 * 3_600_000) {
+      return { ...base, when: live.scheduled_at, days: null, state: "closing", cta: { label: "Ver sesiones", href: anchor } };
+    }
+    const days = Math.max(0, daysUntil(hub.today, at));
     const joinable = days === 0 && live.meeting_url;
     return { ...base, when: live.scheduled_at, days, state: "booked",
       cta: joinable ? { label: "Entrar a la sesión", href: live.meeting_url! } : { label: "Añadir al calendario", href: `/calendario/sesion/${live.id}` } };
   }
-  if (live?.status === "requested") return { ...base, when: null, days: null, state: "requested", cta: { label: "Ver solicitud", href: anchor } };
-  if ((step.blocking_unmet ?? 0) > 0) return { ...base, when: null, days: null, state: "blocked", cta: { label: "Ver qué falta", href: anchor } };
-  return { ...base, when: null, days: null, state: "ready", cta: { label: "Agendar", href: anchor } };
+  if (live?.status === "requested") return { ...base, ...none, state: "requested", cta: { label: "Ver solicitud", href: anchor } };
+  if (step.state !== "current") return { ...base, ...none, state: "upcoming", cta: { label: "Ver el proceso", href: "/proceso" } };
+  if ((step.blocking_unmet ?? 0) > 0) return { ...base, ...none, state: "blocked", cta: { label: "Ver qué falta", href: anchor } };
+  return { ...base, ...none, state: "ready", cta: { label: "Agendar", href: anchor } };
 }
 
 export type UpcomingItem = { d: string; sm: string; t: string; s: string; role?: string; who?: string; cta?: { label: string; href: string } };
+
+const SM: Record<SessionInfo["state"], string> = {
+  booked: "", requested: "solicitada", ready: "lista para agendar", blocked: "por agendar",
+  upcoming: "más adelante", partner: "individual", closing: "por cerrar",
+};
 
 export function upcoming(hub: Hub): UpcomingItem[] {
   const items: UpcomingItem[] = [];
   const info = nextSessionInfo(hub);
   if (info) {
-    const step = hub.steps.find((s) => s.activity_type === "therapy_session" && s.state !== "completed");
     items.push({
-      d: info.when ? fmtDay(info.when) : step?.activity_key ?? "",
-      sm: info.when ? fmtTime(info.when) : info.state === "requested" ? "solicitada" : info.state === "blocked" ? "por agendar" : "lista para agendar",
+      d: info.when && info.state === "booked" ? fmtDay(info.when) : info.key,
+      sm: info.when && info.state === "booked" ? fmtTime(info.when) : SM[info.state],
       t: info.title, s: info.staffName ? `Con ${info.staffName}` : "", role: info.roleKey, who: info.staffName, cta: info.cta,
     });
   }
   const g = nextGroupSession(hub);
   if (g) {
-    const isToday = new Date(g.scheduled_at).toDateString() === hub.today.toDateString();
+    const isToday = daysUntil(hub.today, new Date(g.scheduled_at)) === 0;
     items.push({ d: fmtDay(g.scheduled_at), sm: `${isToday ? "hoy · " : ""}${fmtTime(g.scheduled_at)}`, t: "Sesión de coaching grupal", s: "",
       cta: { label: "Añadir al calendario", href: `/calendario/coaching/${g.id}` } });
   }

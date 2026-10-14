@@ -23,7 +23,7 @@ async function Profile() {
   const uid = auth?.claims?.sub;
   if (!uid) return null;
   const [{ data: p }, { data: staff }] = await Promise.all([
-    supabase.from("profiles").select("full_name, phone, email, avatar_path, prefs, timezone").eq("id", uid).maybeSingle(),
+    supabase.from("profiles").select("full_name, phone, email, avatar_path, prefs").eq("id", uid).maybeSingle(),
     supabase.from("staff_members").select("bio").eq("profile_id", uid).maybeSingle(),
   ]);
   const name = p?.full_name ?? "";
@@ -55,7 +55,7 @@ async function Profile() {
       <section className="card">
         <h2 style={{ marginBottom: 6 }}>Avisos y recordatorios</h2>
         <p className="muted small" style={{ marginBottom: 14 }}>Elige cómo quieres que te recordemos sesiones, tareas y coaching.</p>
-        <PrefsForm prefs={(p?.prefs ?? {}) as { app_notices?: boolean; remind_email?: boolean; remind_whatsapp?: boolean }} timezone={p?.timezone ?? "America/Mexico_City"} />
+        <PrefsForm prefs={(p?.prefs ?? {}) as { app_notices?: boolean; remind_email?: boolean; remind_whatsapp?: boolean }} />
       </section>
       {staff && (
         <section className="card">

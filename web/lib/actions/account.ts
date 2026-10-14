@@ -4,7 +4,6 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site-url";
-import { TIMEZONES } from "@/lib/timezones";
 
 export type AccountState = { error?: string; ok?: string };
 
@@ -84,15 +83,13 @@ export async function saveAvatar(path: string): Promise<AccountState> {
 
 /** Avisos y recordatorios: cómo quiere esta persona que le recordemos sesiones, tareas y coaching. */
 export async function savePrefs(_prev: AccountState, formData: FormData): Promise<AccountState> {
-  const timezone = String(formData.get("timezone") ?? "");
-  if (!TIMEZONES.some(([z]) => z === timezone)) return { error: "Elige una zona horaria de la lista." };
   const prefs = {
     app_notices: formData.get("app_notices") === "on",
     remind_email: formData.get("remind_email") === "on",
     remind_whatsapp: formData.get("remind_whatsapp") === "on",
   };
   const { supabase, uid } = await me();
-  const { error } = await supabase.from("profiles").update({ prefs, timezone }).eq("id", uid);
+  const { error } = await supabase.from("profiles").update({ prefs }).eq("id", uid);
   if (error) return { error: "No pudimos guardar tus preferencias. Inténtalo de nuevo." };
   refresh();
   return { ok: "Preferencias guardadas." };

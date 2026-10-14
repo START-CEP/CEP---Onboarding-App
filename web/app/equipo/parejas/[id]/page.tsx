@@ -206,10 +206,13 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
 
 async function AssignTeam({ enrollmentId, current }: { enrollmentId: string; current: { care_role_id: string; staff_profile_id: string }[] }) {
   const supabase = await createClient();
-  const [{ data: roles }, { data: people }] = await Promise.all([
+  const [{ data: roles }, { data: active }, { data: care }] = await Promise.all([
     supabase.from("care_roles").select("id, key, name").order("name"),
     supabase.from("staff_members").select("profile_id, title, profiles(full_name)").eq("is_active", true),
+    supabase.from("staff_roles").select("profile_id").in("role", ["clinician", "assistant", "admin"]),
   ]);
+  // Solo quien puede atender parejas (la base de datos lo exige igual).
+  const people = (active ?? []).filter((p) => (care ?? []).some((c) => c.profile_id === p.profile_id));
   return (
     <details className="card">
       <summary style={{ cursor: "pointer", fontWeight: 700 }}>Cambiar responsables de esta pareja</summary>
@@ -220,7 +223,7 @@ async function AssignTeam({ enrollmentId, current }: { enrollmentId: string; cur
             <span className="small" style={{ minWidth: 160, fontWeight: 700 }}>{r.name}</span>
             <select className="input" name="staff" style={{ maxWidth: 280 }} defaultValue={current.find((c) => c.care_role_id === r.id)?.staff_profile_id ?? ""}>
               <option value="">Sin asignar</option>
-              {(people ?? []).map((p) => <option key={p.profile_id} value={p.profile_id}>{p.profiles?.full_name} · {p.title}</option>)}
+              {people.map((p) => <option key={p.profile_id} value={p.profile_id}>{p.profiles?.full_name} · {p.title}</option>)}
             </select>
             <button className="btn ghost sm">Guardar</button>
           </ActionForm>
