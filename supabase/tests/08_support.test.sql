@@ -8,7 +8,7 @@ create function pg_temp.as_user(p uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p, 'role', 'authenticated')::text, true);
   select set_config('request.jwt.claim.sub', p::text, true);
 $$;
-create temp table t_e as select id from enrollments where unit_id = '0a000000-0000-4000-8000-000000000001' limit 1;
+create temp table t_e as select id from enrollments where unit_id = '0a000000-0000-4000-8000-000000000001' and status = 'active' limit 1;
 grant select on t_e to authenticated;
 
 -- Pedro abre una consulta compartida y otra privada.

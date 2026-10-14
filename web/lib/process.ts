@@ -83,13 +83,28 @@ export function stepRequirements(hub: Hub, stepId: string | null | undefined): R
     .sort((a, b) => Number(a.is_met) - Number(b.is_met) || (a.label ?? "").localeCompare(b.label ?? ""));
 }
 
-/** Para mostrar requisitos acumulados sin listar 9 chips: lo cumplido se resume, lo pendiente va uno a uno. */
-export function reqSummary<R extends { label: string | null; required_title?: string | null; is_met: boolean | null }>(reqs: R[]) {
+/** Para mostrar requisitos acumulados sin listar 9 chips: lo cumplido se resume y lo pendiente, si son muchos, también. */
+export function reqSummary<R extends { id: string | null; label: string | null; required_title?: string | null; is_met: boolean | null }>(reqs: R[]) {
   const name = (r: R) => r.label ?? r.required_title ?? "";
-  const done = reqs.filter((r) => r.is_met);
-  const pending = reqs.filter((r) => !r.is_met);
-  const doneText = done.length === 0 ? "" : done.length === 1 ? name(done[0]) : `${name(done[0])} al ${name(done[done.length - 1])}`;
-  return { doneCount: done.length, doneText, pending: pending.map((r) => ({ ...r, label: name(r) })) };
+  const num = (r: R) => { const m = /^Módulo (\d+)$/.exec(name(r)); return m ? Number(m[1]) : null; };
+  // Primero lo que no es un módulo (en su orden), después los módulos por número.
+  const sorted = [...reqs].sort((a, b) => (num(a) ?? -1) - (num(b) ?? -1));
+  /** «Módulo 3 al Módulo 8» si son todos módulos seguidos; si no, null. */
+  const range = (list: R[]) => {
+    const ns = list.map(num);
+    if (list.length < 2 || ns.some((n) => n === null)) return null;
+    return ns.every((n, k) => k === 0 || n === ns[k - 1]! + 1) ? `${name(list[0])} al ${name(list[list.length - 1])}` : null;
+  };
+  const done = sorted.filter((r) => r.is_met);
+  const pending = sorted.filter((r) => !r.is_met);
+  const doneText = done.length === 0 ? "" : done.length === 1 ? name(done[0]) : range(done) ?? `${done.length} completados`;
+  const chip = (id: string, label: string) => ({ id, label });
+  const pendingChips = pending.length <= 3
+    ? pending.map((r) => chip(r.id ?? name(r), name(r)))
+    : range(pending)
+      ? [chip("rango", range(pending)!)]
+      : [...pending.slice(0, 2).map((r) => chip(r.id ?? name(r), name(r))), chip("mas", `y ${pending.length - 2} más`)];
+  return { doneCount: done.length, doneText, pending: pendingChips };
 }
 
 function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Action {

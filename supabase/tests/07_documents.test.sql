@@ -13,7 +13,7 @@ select has_table('public', 'documents', 'Existe la tabla de documentos');
 select has_column('public', 'profiles', 'prefs', 'El perfil guarda preferencias');
 select has_column('public', 'staff_members', 'bio', 'El equipo tiene presentación');
 
-create temp table t_e as select id from enrollments where unit_id = '0a000000-0000-4000-8000-000000000001' limit 1;
+create temp table t_e as select id from enrollments where unit_id = '0a000000-0000-4000-8000-000000000001' and status = 'active' limit 1;
 grant select on t_e to authenticated;
 insert into documents (enrollment_id, folder, title, storage_path)
   select id, 'legal', 'Contrato firmado', id || '/c-contrato.pdf' from t_e;

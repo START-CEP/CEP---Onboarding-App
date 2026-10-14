@@ -142,3 +142,24 @@ test("lista de sesiones: más de dos se resume como rango", () => {
   assert.equal(keyRange(["S1", "S2", "S3", "S9"]), "S1 a S9");
   assert.equal(keyRange([]), "");
 });
+
+test("resumen de requisitos con el orden mezclado y etiquetas que no son módulos", () => {
+  const r = (label: string, is_met: boolean) => ({ id: label, label, is_met });
+  // Orden en que llegan de stepRequirements (pendientes primero, luego alfabético).
+  const s4 = reqSummary([r("Módulo 3", true), r("Módulo 0", true), r("Módulo 1", true), r("Módulo 2", true)]);
+  assert.equal(s4.doneText, "Módulo 0 al Módulo 3");
+  const s1 = reqSummary([r("Radiografía Inicial (individual)", true), r("Módulo 0", true), r("Radiografía Inicial (en pareja)", true)]);
+  assert.equal(s1.doneText, "3 completados");
+  const huecos = reqSummary([r("Módulo 1", false), r("Módulo 0", true), r("Módulo 2", true), r("Módulo 3", true)]);
+  assert.equal(huecos.doneText, "3 completados");
+});
+
+test("muchos pendientes se resumen en un solo chip", () => {
+  const r = (label: string, is_met: boolean) => ({ id: label, label, is_met });
+  const s9 = reqSummary(["Módulo 8", "Módulo 3", "Módulo 4", "Módulo 5", "Módulo 6", "Módulo 7"].map((l) => r(l, false)));
+  assert.deepEqual(s9.pending.map((p) => p.label), ["Módulo 3 al Módulo 8"]);
+  const pocos = reqSummary([r("Módulo 4", false), r("Módulo 3", false)]);
+  assert.deepEqual(pocos.pending.map((p) => p.label), ["Módulo 3", "Módulo 4"]);
+  const mezcla = reqSummary(["Radiografía", "Módulo 2", "Módulo 5", "Módulo 7"].map((l) => r(l, false)));
+  assert.deepEqual(mezcla.pending.map((p) => p.label), ["Radiografía", "Módulo 2", "y 2 más"]);
+});
