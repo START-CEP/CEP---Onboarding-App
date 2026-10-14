@@ -2,7 +2,7 @@
 -- bloqueos impuestos por la base y enlaces seguros. Usa la pareja de demo (Pedro y Andrea).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(22);
 
 create function pg_temp.as_user(p uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p, 'role', 'authenticated')::text, true);
@@ -81,6 +81,12 @@ set local role authenticated;
 select throws_ok($$ insert into notifications (profile_id, title, link)
                     values ('b0000000-0000-4000-8000-000000000001', 'Aviso', 'https://phishing.example') $$,
                  '23514', null, 'Un aviso no puede llevar un enlace externo');
+select throws_ok($$ insert into notifications (profile_id, title, link)
+                    values ('b0000000-0000-4000-8000-000000000001', 'Aviso', E'/\t/phishing.example') $$,
+                 '23514', null, 'Un aviso no puede colar un dominio con un tabulador');
+select lives_ok($$ insert into notifications (profile_id, title, link)
+                   values ('b0000000-0000-4000-8000-000000000001', 'Aviso', '/terapia?s=1') $$,
+                'Un aviso sí lleva una ruta interna');
 reset role;
 
 select * from finish();

@@ -34,7 +34,7 @@ async function Notices() {
         {(data ?? []).length === 0 ? <p className="muted">No tienen avisos.</p> : (
           <div className="list">
             {data!.map((n) => (
-              <Link className="li" key={n.id} href={n.link ?? "/"}>
+              <Link className="li" key={n.id} href={internalLink(n.link)}>
                 <span className={`ico ${n.read_at ? "" : "warn"}`}><Icon name="bell" /></span>
                 <div className="tx"><b style={{ fontWeight: n.read_at ? 500 : 700 }}>{n.title}</b><span>{n.body} · {fmtDay(n.created_at)}</span></div>
               </Link>
@@ -44,4 +44,9 @@ async function Notices() {
       </section>
     </>
   );
+}
+
+/** Solo rutas internas: lo demás (otro dominio, caracteres raros) lleva al inicio. */
+function internalLink(link: string | null): string {
+  return link && /^\/([A-Za-z0-9._~%!$&'()*+,;=:@-][A-Za-z0-9._~%!$&'()*+,;=:@/?#-]*)?$/.test(link) ? link : "/";
 }
