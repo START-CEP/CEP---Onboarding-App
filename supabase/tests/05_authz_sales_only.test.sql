@@ -2,7 +2,7 @@
 -- y la IP de la firma no se puede falsear con x-forwarded-for.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(6);
+select plan(9);
 
 create function pg_temp.as_user(p uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p, 'role', 'authenticated')::text, true);
@@ -28,6 +28,29 @@ select throws_ok($$ insert into client_unit_members (unit_id, profile_id, member
 select lives_ok($$ insert into client_unit_members (unit_id, profile_id, member_index)
                    values ('0a000000-0000-4000-8000-0000000000aa', 'b0000000-0000-4000-8000-000000000003', 1) $$,
                 'Ventas añade un paciente a una unidad sin inscripción');
+-- Camino de ataque: cancelar → añadir una cuenta propia → reactivar
+prepare cancel as update enrollments set status = 'cancelled'
+  where unit_id = '0a000000-0000-4000-8000-000000000001' returning id;
+select is_empty('cancel', 'Ventas no puede cambiar el estado de una inscripción');
+reset role;
+select set_config('request.jwt.claims', '', true), set_config('request.jwt.claim.sub', '', true);
+update enrollments set status = 'cancelled' where unit_id = '0a000000-0000-4000-8000-000000000001';
+select pg_temp.as_user('c0000000-0000-4000-8000-000000000001');
+set local role authenticated;
+select throws_ok($$ insert into client_unit_members (unit_id, profile_id, member_index)
+                    values ('0a000000-0000-4000-8000-000000000001', 'b0000000-0000-4000-8000-000000000003', 3) $$,
+                 '42501', null, 'Una inscripción cancelada también bloquea añadir miembros');
+reset role;
+-- La asistente gestiona inscripciones pero no puede reactivar una cancelada
+select pg_temp.as_user('a0000000-0000-4000-8000-000000000005');
+set local role authenticated;
+select throws_ok($$ update enrollments set status = 'active' where unit_id = '0a000000-0000-4000-8000-000000000001' $$,
+                 '42501', null, 'Solo admin reactiva una inscripción cancelada');
+reset role;
+select set_config('request.jwt.claims', '', true), set_config('request.jwt.claim.sub', '', true);
+update enrollments set status = 'active' where unit_id = '0a000000-0000-4000-8000-000000000001';
+select pg_temp.as_user('c0000000-0000-4000-8000-000000000001');
+set local role authenticated;
 prepare ren as update client_units set display_name = 'x' where id = '0a000000-0000-4000-8000-000000000001' returning id;
 select is_empty('ren', 'Ventas no puede editar una unidad ya inscrita');
 reset role;
