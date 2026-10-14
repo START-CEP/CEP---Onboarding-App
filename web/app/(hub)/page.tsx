@@ -133,7 +133,7 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
 
       {!step ? (
         <p className="lead">Completaron su proceso. ¡Felicidades!</p>
-      ) : unmet > 0 ? (
+      ) : next && step.activity_type === "therapy_session" ? null : unmet > 0 ? (
         <div className="nextup">
           <Icon name="lock" size={22} />
           <div>

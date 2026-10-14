@@ -293,7 +293,9 @@ export function nextSessionInfo(hub: Hub): SessionInfo | null {
   if (!step) return null;
   const staff = staffFor(hub, step.responsible_role_id);
   const live = hub.sessions.find((x) => x.enrollment_activity_id === step.activity_id && x.status !== "cancelled" && x.status !== "completed");
-  const base = { title: step.activity_key ? `${step.activity_key} · ${step.title ?? ""}` : step.title ?? "", staffName: staff?.personName, roleKey: staff?.roleKey };
+  const key = step.activity_key ?? "";
+  const title = step.title ?? "";
+  const base = { title: key && !title.startsWith(key) ? `${key} · ${title}` : title, staffName: staff?.personName, roleKey: staff?.roleKey };
   const anchor = `/terapia#${step.activity_key ?? ""}`;
   if (live?.scheduled_at && live.status === "scheduled") {
     const days = Math.max(0, Math.round((startOfDay(new Date(live.scheduled_at)).getTime() - startOfDay(hub.today).getTime()) / DAY));

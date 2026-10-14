@@ -6,7 +6,7 @@ import { Video } from "@/components/video";
 import { getHub } from "@/lib/data/hub";
 import { activityRows, assets } from "@/lib/data/extra";
 import { createClient } from "@/lib/supabase/server";
-import { firstName } from "@/lib/process";
+import { firstName, hiddenNav, todayActions } from "@/lib/process";
 
 export const metadata: Metadata = { title: "Bienvenida · CEP" };
 
@@ -44,6 +44,8 @@ async function Welcome() {
 
   const names = hub.members.map((m) => firstName(m.name)).filter(Boolean);
   const done = startActs.filter((a) => a.is_completed).length;
+  const finished = hiddenNav(hub).includes("/bienvenida");
+  const [first] = todayActions(hub);
   const team = hub.staff.filter((s) => s.roleKey !== "coordinator").map((s) => firstName(s.personName)).join(", ");
 
   return (
@@ -55,6 +57,13 @@ async function Welcome() {
           <p className="lead">Acaban de dar un paso importante. Aquí siempre verán dónde están, qué sigue y qué pueden hacer hoy.</p>
         </div>
       </div>
+      {finished && first && (
+        <div className="alert info">
+          <Icon name="check" />
+          <div style={{ flex: 1 }}><b>Ya completaron su bienvenida.</b> Pueden volver a ver el video cuando quieran. Lo que sigue: {first.title}.</div>
+          <Link className="btn sm" href={first.href}>{first.cta} <Icon name="arrow" size={14} /></Link>
+        </div>
+      )}
       <div className="grid2">
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <Video asset={welcomeAsset} title="Video de bienvenida" />

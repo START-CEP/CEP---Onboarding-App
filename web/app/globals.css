@@ -408,3 +408,5 @@ a.who:hover{background:var(--surface2)}
 .countdown .why{font-size:13px;opacity:.85}
 @media(max-width:700px){.countdown{grid-template-columns:auto minmax(0,1fr)}.countdown .btn{grid-column:1/-1;justify-content:center}.countdown .num{font-size:34px}}
 .li.upc{border-left:4px solid var(--wc);padding-left:12px;background:color-mix(in srgb,var(--wc) 7%,transparent);border-radius:var(--rad-s)}
+.modpager{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:14px}
+@media(max-width:700px){.li{flex-wrap:wrap}.li>.btn{flex-basis:100%;justify-content:center}.agenda .li .d{width:64px;font-size:18px}}

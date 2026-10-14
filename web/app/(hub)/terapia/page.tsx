@@ -5,6 +5,7 @@ import { RequestSession } from "@/components/session-forms";
 import { getHub } from "@/lib/data/hub";
 import { activityRows } from "@/lib/data/extra";
 import { createClient } from "@/lib/supabase/server";
+import { whatsappUrl } from "@/lib/contact";
 import { firstName, fmtDay, fmtTime, roleClass, staffFor, stepRequirements } from "@/lib/process";
 
 export const metadata: Metadata = { title: "Sesiones de Terapia · CEP" };
@@ -29,11 +30,12 @@ async function Therapy() {
   const ids = acts.map((a) => a.activity_id!);
   const [rows, { data: sessions }, { data: agenda }] = await Promise.all([
     activityRows(ids),
-    supabase.from("enrollment_sessions").select("enrollment_activity_id, scheduled_at, status, meeting_url").in("enrollment_activity_id", ids).order("created_at", { ascending: false }),
+    supabase.from("enrollment_sessions").select("id, enrollment_activity_id, scheduled_at, status, meeting_url").in("enrollment_activity_id", ids).order("created_at", { ascending: false }),
     supabase.from("session_agenda_items").select("enrollment_activity_id, body, position").in("enrollment_activity_id", ids).order("position"),
   ]);
   const myIndex = hub.members.find((m) => m.profileId === me.id)?.memberIndex;
   const done = acts.filter((a) => a.is_completed).length;
+  const wa = whatsappUrl(`Hola, somos ${hub.members.map((m) => firstName(m.name)).join(" y ")}. Necesitamos cambiar la fecha de una sesión.`);
   const byRole = new Map<string, string[]>();
   acts.forEach((a) => {
     const s = staffFor(hub, a.responsible_role_id);
@@ -46,7 +48,7 @@ async function Therapy() {
         <div>
           <p className="eyebrow">Sesiones de Terapia</p>
           <h1>Sus {acts.length} sesiones</h1>
-          <p className="lead">Para entrar a cada sesión hay un requisito. Cuando lo cumplan, pidan su cita aquí y el equipo la confirma.</p>
+          <p className="lead">Para entrar a cada sesión hay un requisito. Cuando lo cumplan, agenden aquí y el equipo confirma la hora.</p>
         </div>
         <span className="chip info">{done} de {acts.length} hechas</span>
       </div>
@@ -67,7 +69,7 @@ async function Therapy() {
               const blocked = (step?.blocking_unmet ?? 0) > 0;
               const prevBlock = acts[i - 1] && hub.steps.find((s) => s.activity_id === acts[i - 1].activity_id)?.block_name;
               return (
-                <div key={a.activity_id}>
+                <div key={a.activity_id} id={a.key ?? undefined} style={{ scrollMarginTop: 90 }}>
                   {step?.block_name !== prevBlock && <div className="blockhead">{step?.block_name}</div>}
                   <div className={`sessrow ${state}`}>
                     <span className="n">{a.key}</span>
@@ -78,7 +80,10 @@ async function Therapy() {
                         {individual && (mine
                           ? <span className="chip pair"><Icon name="user" size={12} /> Tu sesión individual</span>
                           : <span className="chip">Individual · {firstName(owner?.name ?? "")}</span>)}
-                        {a.is_completed ? <span className="chip ok">Hecha</span> : state === "next" ? <span className="chip warn">Siguiente</span> : null}
+                        {a.is_completed ? <span className="chip go">Hecha</span>
+                          : last?.status === "scheduled" ? <span className="chip info">Agendada</span>
+                          : last?.status === "requested" ? <span className="chip warn">Solicitud enviada</span>
+                          : state === "next" ? <span className="chip crit">Sin agendar</span> : null}
                       </div>
                       <span className="small muted">
                         <Icon name="clock" size={14} />{" "}
@@ -86,8 +91,11 @@ async function Therapy() {
                           ? `${STATUS_TEXT[last.status]} · ${fmtDay(last.scheduled_at)} · ${fmtTime(last.scheduled_at)}`
                           : a.suggested_on ? `Fecha sugerida: semana del ${fmtDay(a.suggested_on)}` : "Por agendar"}
                       </span>
-                      {last?.status === "scheduled" && last.meeting_url && mine && (
-                        <a className="btn soft sm" style={{ alignSelf: "flex-start" }} href={last.meeting_url} target="_blank" rel="noreferrer">Entrar a la sesión</a>
+                      {last?.status === "scheduled" && mine && (
+                        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                          {last.meeting_url && <a className="btn soft sm" href={last.meeting_url} target="_blank" rel="noreferrer">Entrar a la sesión</a>}
+                          <a className="btn ghost sm" href={`/calendario/sesion/${last.id}`}><Icon name="cal" size={13} /> Añadir al calendario</a>
+                        </div>
                       )}
                       {mine && (items.length > 0 || (state === "next" && row?.summary)) && (
                         <>
@@ -110,8 +118,8 @@ async function Therapy() {
                         </div>
                       )}
                       {mine && state === "next" && !last && (blocked
-                        ? <span className="small muted">Podrán pedir su cita cuando cumplan el requisito.</span>
-                        : <RequestSession activityId={a.activity_id!} label={`Pedir cita${staff ? ` con ${firstName(staff.personName)}` : ""}`} />)}
+                        ? <span className="small muted">Podrán agendarla cuando cumplan el requisito.</span>
+                        : <RequestSession activityId={a.activity_id!} label={`Agendar${staff ? ` con ${firstName(staff.personName)}` : ""}`} />)}
                     </div>
                   </div>
                 </div>
@@ -140,7 +148,8 @@ async function Therapy() {
           </section>
           <section className="card">
             <h3 style={{ marginBottom: 10 }}>¿Necesitan cambiar una fecha?</h3>
-            <p className="muted">Avísenle al equipo por el grupo de WhatsApp con 24 horas de anticipación.</p>
+            <p className="muted" style={{ marginBottom: 12 }}>Escríbanle a nuestro asistente con 24 horas de anticipación.</p>
+            {wa && <a className="btn" href={wa} target="_blank" rel="noreferrer"><Icon name="chat" size={15} /> Escribir por WhatsApp</a>}
           </section>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { getHub } from "@/lib/data/hub";
 import { firstName, roleClass, staffFor, stepRequirements, stepTone } from "@/lib/process";
@@ -46,7 +46,7 @@ async function Steps() {
           const mine = individual && myIndex === (s.participants === "member_1" ? 1 : 2);
           const owner = individual ? hub.members.find((m) => m.memberIndex === (s.participants === "member_1" ? 1 : 2)) : undefined;
           return (
-            <div key={s.step_id}>
+            <Fragment key={s.step_id}>
               {head}
               <div className={`vstep ${tone}`}>
                 <span className="dotn">{tone === "d" ? <Icon name="check" size={16} /> : tone === "x" ? "!" : s.position}</span>
@@ -83,7 +83,7 @@ async function Steps() {
                   )}
                 </div>
               </div>
-            </div>
+            </Fragment>
           );
         })}
       </section>

@@ -68,13 +68,13 @@ async function Modules({ searchParams }: { searchParams: PageProps<"/modulos">["
             })}
           </div>
         </section>
-        {detail ? <Detail d={detail} tab={tab} meId={me.id} partner={partner ? firstName(partner.name) : undefined} /> : <section className="card empty">Este servicio no tiene módulos en video.</section>}
+        {detail ? <Detail d={detail} items={items} tab={tab} meId={me.id} partner={partner ? firstName(partner.name) : undefined} /> : <section className="card empty">Este servicio no tiene módulos en video.</section>}
       </div>
     </>
   );
 }
 
-function Detail({ d, tab, meId, partner }: { d: ModuleDetail; tab: "online" | "pdf"; meId: string; partner?: string }) {
+function Detail({ d, items, tab, meId, partner }: { d: ModuleDetail; items: ModuleItem[]; tab: "online" | "pdf"; meId: string; partner?: string }) {
   const locked = d.status === "locked";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
@@ -118,7 +118,27 @@ function Detail({ d, tab, meId, partner }: { d: ModuleDetail; tab: "online" | "p
           )}
         </section>
       )}
+      <Pager items={items} current={d.activityId} />
     </div>
+  );
+}
+
+function Pager({ items, current }: { items: ModuleItem[]; current: string }) {
+  const i = items.findIndex((m) => m.activityId === current);
+  const prev = items[i - 1];
+  const next = items[i + 1];
+  const short = (m: ModuleItem) => m.title.split(" · ")[0];
+  return (
+    <nav className="modpager" aria-label="Navegar entre módulos">
+      {prev ? (
+        <Link className="btn ghost sm" href={`/modulos?m=${encodeURIComponent(prev.key)}`}>
+          <span style={{ display: "inline-flex", transform: "scaleX(-1)" }}><Icon name="arrow" size={14} /></span> {short(prev)}
+        </Link>
+      ) : <span />}
+      {next && (next.status === "locked"
+        ? <span className="chip"><Icon name="lock" size={13} /> {short(next)}: se abre al cumplir su requisito</span>
+        : <Link className="btn sm" href={`/modulos?m=${encodeURIComponent(next.key)}`}>Siguiente: {short(next)} <Icon name="arrow" size={14} /></Link>)}
+    </nav>
   );
 }
 

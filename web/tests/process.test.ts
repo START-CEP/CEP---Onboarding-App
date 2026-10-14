@@ -67,3 +67,10 @@ test("coaching futuro sin título y con calendario", () => {
   assert.equal(g.s, "");
   assert.deepEqual(g.cta, { label: "Añadir al calendario", href: "/calendario/coaching/g1" });
 });
+
+test("el título de la sesión no repite la clave", () => {
+  const info = nextSessionInfo(hub({ steps: [step({ title: "S5 · Definir el ciclo negativo", activity_key: "S5" })], activities: [act({})] }))!;
+  assert.equal(info.title, "S5 · Definir el ciclo negativo");
+  const plain = nextSessionInfo(hub({ steps: [step({ title: "Definir el ciclo", activity_key: "S5" })], activities: [act({})] }))!;
+  assert.equal(plain.title, "S5 · Definir el ciclo");
+});

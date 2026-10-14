@@ -21,12 +21,12 @@ export function MarkViewed({ activityId, moduleKey, done }: { activityId: string
   const stay = useStay(moduleUrl(moduleKey));
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
-  if (done) return <span className="chip ok"><Icon name="check" size={14} /> Video visto</span>;
+  if (done) return <span className="chip ok"><Icon name="check" size={14} /> Completado</span>;
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
       <button className="btn soft sm" disabled={pending}
         onClick={() => start(async () => { const r = await markViewed(activityId); setError(r.error); if (!r.error) stay(); })}>
-        <Icon name="check" size={15} /> {pending ? "Guardando…" : "Ya vi el video"}
+        <Icon name="check" size={15} /> {pending ? "Guardando…" : "Marcar como completado"}
       </button>
       {error && <span className="formerr">{error}</span>}
     </div>

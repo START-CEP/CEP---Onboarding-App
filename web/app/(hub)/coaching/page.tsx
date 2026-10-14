@@ -6,7 +6,7 @@ import { Video } from "@/components/video";
 import { getHub } from "@/lib/data/hub";
 import { assets, signedContentUrl } from "@/lib/data/extra";
 import { createClient } from "@/lib/supabase/server";
-import { fmtDay, fmtTime, nextGroupSession } from "@/lib/process";
+import { fmtDay, fmtTime, groupTitle, nextGroupSession } from "@/lib/process";
 
 export const metadata: Metadata = { title: "Coaching Grupal · CEP" };
 
@@ -56,10 +56,10 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
       {watching && (
         <section className="card qblock">
           <div className="ch" style={{ margin: 0 }}>
-            <h2>Grabación · {fmtDay(watching.scheduled_at)} · {watching.title}</h2>
+            <h2>Grabación · {fmtDay(watching.scheduled_at)} · {groupTitle(watching)}</h2>
             <a className="btn ghost sm" href="/coaching">Cerrar</a>
           </div>
-          <Video asset={watchAsset} title={`Coaching ${watching.title ?? ""}`} />
+          <Video asset={watchAsset} title={`Coaching ${groupTitle(watching)}`} />
         </section>
       )}
       <div className="grid2">
@@ -77,7 +77,7 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
                   <span className={`ico ${done ? "ok" : isNext ? "info" : ""}`}><Icon name={done ? "check" : "users"} /></span>
                   <div className="tx" style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 220 }}>
                     <div>
-                      <b>{fmtDay(g.scheduled_at)} · {g.title}</b>
+                      <b>{fmtDay(g.scheduled_at)} · {groupTitle(g)}</b>
                       <span>{done ? "Grabación y recursos disponibles" : isNext ? `Próximo · ${fmtTime(g.scheduled_at)}` : `Programado · ${fmtTime(g.scheduled_at)}`}</span>
                     </div>
                     {res.map((r) => (
@@ -93,6 +93,7 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
                   <div className="acts">
                     {done && rec?.recording_asset_id && <a className="btn soft sm" href={`/coaching?ver=${g.id}`}><Icon name="play" size={13} /> Ver grabación</a>}
                     {isNext && meeting && <a className="btn sm" href={meeting} target="_blank" rel="noreferrer">Entrar</a>}
+                    {!done && new Date(g.scheduled_at) >= hub.today && <a className="btn ghost sm" href={`/calendario/coaching/${g.id}`}><Icon name="cal" size={13} /> Añadir al calendario</a>}
                   </div>
                 </div>
               );
@@ -101,8 +102,8 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
         </section>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, alignSelf: "start" }}>
           {next && (
-            <section className="card qblock">
-              <h2>¿Tienen una pregunta para el próximo coaching?</h2>
+            <section className="card qblock" id="pregunta">
+              <h2>¿Tienes una pregunta para el próximo coaching?</h2>
               <AskQuestion groupSessionId={next.id} enrollmentId={hub.enrollment.enrollment_id!} dateLabel={fmtDay(next.scheduled_at)} />
             </section>
           )}

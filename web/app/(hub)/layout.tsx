@@ -6,7 +6,7 @@ import { Icon } from "@/components/icon";
 import { BottomNav, Crumb, SideNav } from "@/components/nav";
 import { getHub } from "@/lib/data/hub";
 import { avatarUrl } from "@/lib/data/extra";
-import { firstName } from "@/lib/process";
+import { firstName, hiddenNav } from "@/lib/process";
 import { signOut } from "../login/actions";
 
 async function TopUser() {
@@ -39,6 +39,11 @@ async function TopUser() {
   );
 }
 
+async function Menu() {
+  const { hub } = await getHub();
+  return <SideNav hidden={hub ? hiddenNav(hub) : []} />;
+}
+
 async function Service() {
   const { hub } = await getHub();
   return <>{hub?.enrollment.service_name ?? "CEP"}</>;
@@ -53,8 +58,8 @@ export default function HubLayout({ children }: LayoutProps<"/">) {
           <div className="bname">Creciendo en pareja<small>Su ruta de pareja</small></div>
         </div>
         <div className="navlabel">Menú</div>
-        <Suspense>
-          <SideNav />
+        <Suspense fallback={<SideNav />}>
+          <Menu />
         </Suspense>
         <div className="spacer" />
         <form action={signOut}>

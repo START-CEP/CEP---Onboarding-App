@@ -17,7 +17,7 @@ export function RequestSession({ activityId, label }: { activityId: string; labe
       <label htmlFor={`when-${activityId}`}>¿Qué día y hora les vendría bien?</label>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
         <input className="input" style={{ maxWidth: 260 }} id={`when-${activityId}`} type="datetime-local" required value={when} onChange={(e) => setWhen(e.target.value)} />
-        <button className="btn sm" type="submit" disabled={pending}>{pending ? "Enviando…" : "Pedir cita"}</button>
+        <button className="btn sm" type="submit" disabled={pending}>{pending ? "Enviando…" : "Enviar solicitud"}</button>
         <button className="btn ghost sm" type="button" onClick={() => setOpen(false)}>Cancelar</button>
       </div>
       <span className="hint">El equipo les confirmará la cita (o les propondrá otra hora) por WhatsApp y aquí.</span>
