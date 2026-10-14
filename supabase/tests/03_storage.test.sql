@@ -1,5 +1,6 @@
 -- Storage: rutas privadas por inscripción y persona; recursos solo para quien está inscrito.
 begin;
+set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
 select plan(5);
 

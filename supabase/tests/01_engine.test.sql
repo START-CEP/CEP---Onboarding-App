@@ -1,5 +1,6 @@
 -- Motor genérico: estado de la maqueta, otros servicios, versionado y validación.
 begin;
+set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
 select plan(15);
 

@@ -1,6 +1,7 @@
 -- Un usuario SOLO de ventas (sin rol de asistente) no puede escalar a través de las unidades,
 -- y la IP de la firma no se puede falsear con x-forwarded-for.
 begin;
+set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
 select plan(9);
 

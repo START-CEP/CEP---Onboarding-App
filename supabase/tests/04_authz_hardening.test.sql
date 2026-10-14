@@ -1,5 +1,6 @@
 -- Regresiones de la revisión de seguridad: escalada de ventas/asistente, borradores, firmas, progreso.
 begin;
+set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
 select plan(8);
 

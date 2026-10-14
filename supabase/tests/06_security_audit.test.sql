@@ -1,6 +1,7 @@
 -- Auditoría de seguridad (migración 0020): correo del perfil, sesiones individuales, ventas sin acceso clínico,
 -- bloqueos impuestos por la base y enlaces seguros. Usa la pareja de demo (Pedro y Andrea).
 begin;
+set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
 select plan(22);
 

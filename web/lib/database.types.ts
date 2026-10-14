@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       action_tokens: {
@@ -508,6 +483,87 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_enrollment_state"
             referencedColumns: ["service_id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          enrollment_id: string
+          folder: Database["public"]["Enums"]["document_folder"]
+          id: string
+          mime: string | null
+          profile_id: string | null
+          size_bytes: number | null
+          storage_path: string
+          title: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enrollment_id: string
+          folder: Database["public"]["Enums"]["document_folder"]
+          id?: string
+          mime?: string | null
+          profile_id?: string | null
+          size_bytes?: number | null
+          storage_path: string
+          title: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          enrollment_id?: string
+          folder?: Database["public"]["Enums"]["document_folder"]
+          id?: string
+          mime?: string | null
+          profile_id?: string | null
+          size_bytes?: number | null
+          storage_path?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "v_enrollment_state"
+            referencedColumns: ["enrollment_id"]
+          },
+          {
+            foreignKeyName: "documents_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "v_group_progress"
+            referencedColumns: ["enrollment_id"]
+          },
+          {
+            foreignKeyName: "documents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -1734,6 +1790,7 @@ export type Database = {
           full_name: string
           id: string
           phone: string | null
+          prefs: Json
           timezone: string
           updated_at: string
         }
@@ -1744,6 +1801,7 @@ export type Database = {
           full_name?: string
           id: string
           phone?: string | null
+          prefs?: Json
           timezone?: string
           updated_at?: string
         }
@@ -1754,6 +1812,7 @@ export type Database = {
           full_name?: string
           id?: string
           phone?: string | null
+          prefs?: Json
           timezone?: string
           updated_at?: string
         }
@@ -2529,18 +2588,21 @@ export type Database = {
       }
       staff_members: {
         Row: {
+          bio: string | null
           created_at: string
           is_active: boolean
           profile_id: string
           title: string
         }
         Insert: {
+          bio?: string | null
           created_at?: string
           is_active?: boolean
           profile_id: string
           title: string
         }
         Update: {
+          bio?: string | null
           created_at?: string
           is_active?: boolean
           profile_id?: string
@@ -2765,6 +2827,107 @@ export type Database = {
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "form_submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_messages: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          ticket_id: string
+        }
+        Insert: {
+          author_id?: string
+          body: string
+          created_at?: string
+          id?: string
+          ticket_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          ticket_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_messages_author_id_fkey"
+            columns: ["author_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          created_at: string
+          enrollment_id: string
+          id: string
+          is_private: boolean
+          opened_by: string
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enrollment_id: string
+          id?: string
+          is_private?: boolean
+          opened_by?: string
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enrollment_id?: string
+          id?: string
+          is_private?: boolean
+          opened_by?: string
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "enrollments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "support_tickets_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "v_enrollment_state"
+            referencedColumns: ["enrollment_id"]
+          },
+          {
+            foreignKeyName: "support_tickets_enrollment_id_fkey"
+            columns: ["enrollment_id"]
+            isOneToOne: false
+            referencedRelation: "v_group_progress"
+            referencedColumns: ["enrollment_id"]
+          },
+          {
+            foreignKeyName: "support_tickets_opened_by_fkey"
+            columns: ["opened_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -3096,6 +3259,7 @@ export type Database = {
         | "external_link"
         | "checklist"
       asset_kind: "video" | "pdf" | "audio" | "image" | "other"
+      document_folder: "legal" | "process" | "reports" | "resources"
       enforcement: "blocks" | "reminds"
       enrollment_status:
         | "invited"
@@ -3256,9 +3420,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       activity_type: [
@@ -3274,6 +3435,7 @@ export const Constants = {
         "checklist",
       ],
       asset_kind: ["video", "pdf", "audio", "image", "other"],
+      document_folder: ["legal", "process", "reports", "resources"],
       enforcement: ["blocks", "reminds"],
       enrollment_status: [
         "invited",
