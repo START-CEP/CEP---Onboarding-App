@@ -167,6 +167,37 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
         {A.length === 0 && <p className="muted" style={{ marginBottom: 12 }}>Aún no hay actividades. Crea la primera abajo.</p>}
         <div className="list">
           {A.map((a) => {
+            const locks = (reqs.data ?? []).filter((r) => r.target_activity_id === a.id);
+            const lockBlock = (
+              <div style={{ margin: "10px 0" }}>
+                <div className="reqs">
+                  <span className="small" style={{ fontWeight: 700 }}>Se abre cuando:</span>
+                  {locks.length === 0 && <span className="small muted">siempre disponible (se puede adelantar)</span>}
+                  {locks.map((r) => (
+                    <span key={r.id} className="req" style={{ gap: 8 }}>
+                      {r.label ?? actLabel(r.required_activity_id)} · {CRITERIA.find((c) => c[0] === r.criterion)?.[1]}
+                      {draft && (
+                        <ActionForm action={deleteRow} inline className="" style={{ display: "inline" }}>
+                          <input type="hidden" name="table" value="service_requirements" /><input type="hidden" name="id" value={r.id} /><input type="hidden" name="version" value={id} />
+                          <button className="btn ghost sm" style={{ padding: "0 6px" }} aria-label="Quitar candado">×</button>
+                        </ActionForm>
+                      )}
+                    </span>
+                  ))}
+                </div>
+                {draft && (
+                  <ActionForm action={addRequirement} style={{ marginTop: 8 }}>
+                    <input type="hidden" name="version" value={id} /><input type="hidden" name="target_activity" value={a.id} />
+                    <div className="ae-grid">
+                      <div className="field"><label>Bloquear hasta que…</label><select className="input" name="criterion">{CRITERIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                      <div className="field"><label>…en la actividad</label><select className="input" name="required">{A.filter((x) => x.id !== a.id).map((x) => <option key={x.id} value={x.id}>{x.key} · {x.title}</option>)}</select></div>
+                      <div className="field wide"><label>Texto para la pareja (opcional)</label><input className="input" name="label" placeholder="Ej.: Ver primero el Módulo 3" /></div>
+                    </div>
+                    <button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Añadir candado</button>
+                  </ActionForm>
+                )}
+              </div>
+            );
             const links = [assetName(a.asset_id), formName(a.form_version_id), contractName(a.contract_template_id)].filter(Boolean);
             const inSteps = stepOf(a.id);
             return (
@@ -178,6 +209,7 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
                   {links.map((l) => <span key={l} className="chip info" style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis" }}>{l}</span>)}
                   {inSteps.length > 0 ? <span className="small muted">paso {inSteps.join(", ")}</span> : <span className="small muted">sin paso</span>}
                 </summary>
+                {lockBlock}
                 {draft ? (
                   <>
                     <ActivityEditor {...editorProps} activity={a} />

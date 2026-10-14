@@ -4,6 +4,8 @@ import { Icon } from "@/components/icon";
 import {
   AgendaEditor, ConfirmActivityButton, NoteForm, ScheduleForm, SessionStatusButtons, StepButton, TaskToggle, WaiveButton,
 } from "@/components/staff-forms";
+import { ActionForm } from "@/components/action-form";
+import { assignStaff } from "@/lib/actions/staff";
 import { formSchemas } from "@/lib/data/extra";
 import { getStaff } from "@/lib/data/staff";
 import { answerText } from "@/lib/forms";
@@ -40,7 +42,7 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
     supabase.from("session_notes").select("id, enrollment_session_id, body, created_at, profiles(full_name)").order("created_at", { ascending: false }),
     supabase.from("staff_task_progress").select("id, item_key, due_on, done_at, enrollment_activities!inner(enrollment_id, title, config)").eq("enrollment_activities.enrollment_id", id),
     supabase.from("form_submissions").select("id, enrollment_activity_id, form_version_id, submitted_by, response_scope, status, answers, submitted_at, submission_files(files(path))").eq("enrollment_id", id).eq("status", "submitted").order("submitted_at", { ascending: false }),
-    supabase.from("enrollment_staff").select("care_roles(name), profiles(full_name)").eq("enrollment_id", id),
+    supabase.from("enrollment_staff").select("care_role_id, staff_profile_id, care_roles(name), profiles(full_name)").eq("enrollment_id", id),
   ]);
 
   const nameOf = (pid: string) => firstName(members.data?.find((m) => m.profile_id === pid)?.profiles?.full_name ?? "");
@@ -73,6 +75,7 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
         </div>
         <span className="chip info">{current ? `Paso ${current.position} de ${steps.data?.length} · ${current.block_name}` : "Proceso completado"}</span>
       </div>
+      {staff?.isAdmin && <AssignTeam enrollmentId={id} current={staffRows.data ?? []} />}
 
       <div className="grid2">
         <section className="card">
@@ -195,5 +198,31 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
         )}
       </section>
     </>
+  );
+}
+
+async function AssignTeam({ enrollmentId, current }: { enrollmentId: string; current: { care_role_id: string; staff_profile_id: string }[] }) {
+  const supabase = await createClient();
+  const [{ data: roles }, { data: people }] = await Promise.all([
+    supabase.from("care_roles").select("id, key, name").order("name"),
+    supabase.from("staff_members").select("profile_id, title, profiles(full_name)").eq("is_active", true),
+  ]);
+  return (
+    <details className="card">
+      <summary style={{ cursor: "pointer", fontWeight: 700 }}>Cambiar responsables de esta pareja</summary>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
+        {(roles ?? []).map((r) => (
+          <ActionForm key={r.id} action={assignStaff} inline>
+            <input type="hidden" name="enrollment" value={enrollmentId} /><input type="hidden" name="role" value={r.id} />
+            <span className="small" style={{ minWidth: 160, fontWeight: 700 }}>{r.name}</span>
+            <select className="input" name="staff" style={{ maxWidth: 280 }} defaultValue={current.find((c) => c.care_role_id === r.id)?.staff_profile_id ?? ""}>
+              <option value="">Sin asignar</option>
+              {(people ?? []).map((p) => <option key={p.profile_id} value={p.profile_id}>{p.profiles?.full_name} · {p.title}</option>)}
+            </select>
+            <button className="btn ghost sm">Guardar</button>
+          </ActionForm>
+        ))}
+      </div>
+    </details>
   );
 }

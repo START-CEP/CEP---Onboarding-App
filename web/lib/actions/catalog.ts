@@ -222,9 +222,15 @@ async function renumberSteps(supabase: Awaited<ReturnType<typeof createClient>>,
 
 export async function addRequirement(_p: FormState, fd: FormData): Promise<FormState> {
   const supabase = await admin();
+  // Un requisito es para entrar a un paso o para abrir una actividad (p. ej. un módulo), nunca para ambos.
+  const step = orNull(s(fd, "step"));
+  const activity = orNull(s(fd, "target_activity"));
+  if (!step === !activity) return { error: "Elige si el requisito es para un paso o para una actividad." };
+  if (activity && activity === s(fd, "required")) return { error: "Una actividad no puede ser requisito de sí misma." };
   const { error } = await supabase.from("service_requirements").insert({
     version_id: s(fd, "version"),
-    target_step_id: s(fd, "step"),
+    target_step_id: step,
+    target_activity_id: activity,
     required_activity_id: s(fd, "required"),
     criterion: s(fd, "criterion") as Enums["req_criterion"],
     is_mandatory: s(fd, "mandatory") !== "no",

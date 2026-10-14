@@ -102,3 +102,14 @@ export async function setQuestionStatus(questionId: string, status: "selected" |
   const { error } = await supabase.from("group_session_questions").update({ status }).eq("id", questionId);
   return done(error, "No pudimos actualizar la pregunta.");
 }
+
+/** Cambiar quién cubre un rol (terapeuta, psicóloga…) en una pareja concreta. La RLS lo limita a admin. */
+export async function assignStaff(_p: { error?: string; ok?: string }, fd: FormData): Promise<{ error?: string; ok?: string }> {
+  const { supabase } = await staffSession();
+  const row = { enrollment_id: String(fd.get("enrollment") ?? ""), care_role_id: String(fd.get("role") ?? ""), staff_profile_id: String(fd.get("staff") ?? "") };
+  if (!row.staff_profile_id) return { error: "Elige a una persona del equipo." };
+  const { error } = await supabase.from("enrollment_staff").upsert(row, { onConflict: "enrollment_id,care_role_id" });
+  if (error) return { error: "No pudimos cambiar el responsable (solo un admin puede hacerlo)." };
+  refresh();
+  return { ok: "Responsable actualizado." };
+}
