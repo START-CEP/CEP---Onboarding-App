@@ -49,6 +49,10 @@ export function BottomNav() {
           {n.short}
         </Link>
       ))}
+      <Link href="/mas" aria-current={pathname.startsWith("/mas") ? "page" : undefined}>
+        <Icon name="menu" size={20} />
+        Más
+      </Link>
     </nav>
   );
 }
@@ -56,5 +60,5 @@ export function BottomNav() {
 export function Crumb() {
   const pathname = usePathname();
   const item = NAV.find((n) => isActive(pathname, n.href));
-  return <b>{pathname.startsWith("/perfil") ? "Tu perfil" : item?.label ?? ""}</b>;
+  return <b>{pathname.startsWith("/perfil") ? "Tu perfil" : pathname.startsWith("/mas") ? "Todas las secciones" : item?.label ?? ""}</b>;
 }

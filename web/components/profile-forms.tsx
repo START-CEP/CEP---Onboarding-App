@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState, useRef, useState, useTransition } from "react";
-import { changePassword, saveAvatar, updateProfile, type AccountState } from "@/lib/actions/account";
+import { changePassword, saveAvatar, saveBio, savePrefs, updateProfile, type AccountState } from "@/lib/actions/account";
+import { TIMEZONES } from "@/lib/timezones";
 import { createClient } from "@/lib/supabase/client";
 
 export function AvatarForm({ uid, initial, photo }: { uid: string; initial: string; photo: string | null }) {
@@ -87,6 +88,44 @@ export function ChangePasswordForm() {
       {state.error && <p className="formerr" role="alert">{state.error}</p>}
       {state.ok && <p className="formok" role="status">{state.ok}</p>}
       <button className="btn" type="submit" disabled={pending} style={{ alignSelf: "flex-start" }}>{pending ? "Cambiando…" : "Cambiar contraseña"}</button>
+    </form>
+  );
+}
+
+type Prefs = { app_notices?: boolean; remind_email?: boolean; remind_whatsapp?: boolean };
+
+export function PrefsForm({ prefs, timezone }: { prefs: Prefs; timezone: string }) {
+  const [state, action, pending] = useActionState<AccountState, FormData>(savePrefs, {});
+  return (
+    <form action={action} className="qblock" style={{ gap: 12 }}>
+      <label className="check"><input type="checkbox" name="app_notices" defaultChecked={prefs.app_notices !== false} /> Avisos dentro de la app (la campana)</label>
+      <label className="check"><input type="checkbox" name="remind_email" defaultChecked={prefs.remind_email !== false} /> Recordatorios de sesiones y tareas por correo</label>
+      <label className="check"><input type="checkbox" name="remind_whatsapp" defaultChecked={prefs.remind_whatsapp !== false} /> Recordatorios por WhatsApp</label>
+      <div className="field">
+        <label htmlFor="timezone">Tu zona horaria</label>
+        <select className="input" id="timezone" name="timezone" defaultValue={timezone} style={{ maxWidth: 320 }}>
+          {TIMEZONES.map(([z, l]) => <option key={z} value={z}>{l}</option>)}
+        </select>
+      </div>
+      {state.error && <p className="formerr" role="alert">{state.error}</p>}
+      {state.ok && <p className="formok" role="status">{state.ok}</p>}
+      <button className="btn" type="submit" disabled={pending} style={{ alignSelf: "flex-start" }}>{pending ? "Guardando…" : "Guardar preferencias"}</button>
+    </form>
+  );
+}
+
+export function BioForm({ bio }: { bio: string }) {
+  const [state, action, pending] = useActionState<AccountState, FormData>(saveBio, {});
+  return (
+    <form action={action} className="qblock" style={{ gap: 12 }}>
+      <div className="field">
+        <label htmlFor="bio">Tu presentación para las parejas</label>
+        <textarea className="input" id="bio" name="bio" maxLength={1200} rows={5} defaultValue={bio} placeholder="Psicóloga clínica con 10 años acompañando parejas…" />
+        <span className="hint">Aparece con tu foto en «Quién los acompaña», en Sesiones de Terapia.</span>
+      </div>
+      {state.error && <p className="formerr" role="alert">{state.error}</p>}
+      {state.ok && <p className="formok" role="status">{state.ok}</p>}
+      <button className="btn" type="submit" disabled={pending} style={{ alignSelf: "flex-start" }}>{pending ? "Guardando…" : "Guardar presentación"}</button>
     </form>
   );
 }

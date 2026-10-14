@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { Suspense } from "react";
-import { AvatarForm, ChangePasswordForm, ProfileForm } from "@/components/profile-forms";
+import { AvatarForm, BioForm, ChangePasswordForm, PrefsForm, ProfileForm } from "@/components/profile-forms";
 import { avatarUrl } from "@/lib/data/extra";
 import { firstName } from "@/lib/process";
 import { createClient } from "@/lib/supabase/server";
@@ -22,7 +22,10 @@ async function Profile() {
   const { data: auth } = await supabase.auth.getClaims();
   const uid = auth?.claims?.sub;
   if (!uid) return null;
-  const { data: p } = await supabase.from("profiles").select("full_name, phone, email, avatar_path").eq("id", uid).maybeSingle();
+  const [{ data: p }, { data: staff }] = await Promise.all([
+    supabase.from("profiles").select("full_name, phone, email, avatar_path, prefs, timezone").eq("id", uid).maybeSingle(),
+    supabase.from("staff_members").select("bio").eq("profile_id", uid).maybeSingle(),
+  ]);
   const name = p?.full_name ?? "";
   const photo = await avatarUrl(p?.avatar_path);
 
@@ -32,7 +35,7 @@ async function Profile() {
         <div>
           <p className="eyebrow">Tu perfil</p>
           <h1>{firstName(name) ? `Hola, ${firstName(name)}` : "Tu perfil"}</h1>
-          <p className="lead">Tu foto, tus datos y tu contraseña. Es tu cuenta personal: tu pareja tiene la suya.</p>
+          <p className="lead">Tu foto, tus datos, tus avisos y tu contraseña. Es tu cuenta personal: tu pareja tiene la suya.</p>
         </div>
       </div>
       <section className="card">
@@ -49,6 +52,17 @@ async function Profile() {
           <ChangePasswordForm />
         </section>
       </div>
+      <section className="card">
+        <h2 style={{ marginBottom: 6 }}>Avisos y recordatorios</h2>
+        <p className="muted small" style={{ marginBottom: 14 }}>Elige cómo quieres que te recordemos sesiones, tareas y coaching.</p>
+        <PrefsForm prefs={(p?.prefs ?? {}) as { app_notices?: boolean; remind_email?: boolean; remind_whatsapp?: boolean }} timezone={p?.timezone ?? "America/Mexico_City"} />
+      </section>
+      {staff && (
+        <section className="card">
+          <h2 style={{ marginBottom: 14 }}>Tu presentación</h2>
+          <BioForm bio={staff.bio ?? ""} />
+        </section>
+      )}
     </>
   );
 }

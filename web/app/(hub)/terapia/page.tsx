@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { RequestSession } from "@/components/session-forms";
 import { getHub } from "@/lib/data/hub";
-import { activityRows } from "@/lib/data/extra";
+import { activityRows, avatarUrl } from "@/lib/data/extra";
 import { createClient } from "@/lib/supabase/server";
 import { whatsappUrl } from "@/lib/contact";
 import { firstName, fmtDay, fmtTime, roleClass, staffFor, stepRequirements } from "@/lib/process";
@@ -28,10 +28,16 @@ async function Therapy() {
 
   const supabase = await createClient();
   const ids = acts.map((a) => a.activity_id!);
-  const [rows, { data: sessions }, { data: agenda }] = await Promise.all([
+  const [rows, { data: sessions }, { data: agenda }, { data: team }] = await Promise.all([
     activityRows(ids),
     supabase.from("enrollment_sessions").select("id, enrollment_activity_id, scheduled_at, status, meeting_url").in("enrollment_activity_id", ids).order("created_at", { ascending: false }),
     supabase.from("session_agenda_items").select("enrollment_activity_id, body, position").in("enrollment_activity_id", ids).order("position"),
+    supabase.from("enrollment_staff").select("staff_profile_id, care_roles(key, name), profiles(full_name, avatar_path)").eq("enrollment_id", hub.enrollment.enrollment_id!),
+  ]);
+  const people = (team ?? []).filter((t) => t.care_roles?.key !== "coordinator");
+  const [{ data: bios }, photos] = await Promise.all([
+    supabase.from("staff_members").select("profile_id, title, bio").in("profile_id", people.map((t) => t.staff_profile_id)),
+    Promise.all(people.map(async (t) => [t.staff_profile_id, await avatarUrl(t.profiles?.avatar_path)] as const)).then((x) => new Map(x)),
   ]);
   const myIndex = hub.members.find((m) => m.profileId === me.id)?.memberIndex;
   const done = acts.filter((a) => a.is_completed).length;
@@ -133,18 +139,24 @@ async function Therapy() {
             <p className="muted">Las fechas sugeridas son una referencia, no un plazo: el avance lo marca su terapeuta en sesión. Si necesitan una sesión antes, pueden pedirla.</p>
           </section>
           <section className="card">
-            <h3 style={{ marginBottom: 10 }}>Quién los acompaña</h3>
-            <div className="list">
-              {[...byRole.entries()].map(([name, keys]) => {
-                const s = hub.staff.find((x) => x.personName === name);
-                return (
-                  <div className="li" key={name}>
-                    <span className={`whochip ${roleClass(s?.roleKey)}`}><i>{name.charAt(0)}</i>{firstName(name)}</span>
-                    <div className="tx"><span>{keys.join(", ")}</span></div>
+            <h3 style={{ marginBottom: 4 }}>Quién los acompaña</h3>
+            {people.map((p) => {
+              const name = p.profiles?.full_name ?? "";
+              const info = bios?.find((b) => b.profile_id === p.staff_profile_id);
+              const photo = photos.get(p.staff_profile_id);
+              const keys = byRole.get(name)?.join(", ");
+              return (
+                <div className={`pro ${roleClass(p.care_roles?.key)}`} key={p.staff_profile_id}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage */}
+                  <span className="av pav">{photo ? <img src={photo} alt="" /> : name.charAt(0)}</span>
+                  <div className="tx">
+                    <b>{name}</b>
+                    <span className="small muted">{info?.title ?? p.care_roles?.name}{keys ? ` · ${keys}` : ""}</span>
+                    {info?.bio && <p className="small" style={{ marginTop: 4 }}>{info.bio}</p>}
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
           </section>
           <section className="card">
             <h3 style={{ marginBottom: 10 }}>¿Necesitan cambiar una fecha?</h3>
