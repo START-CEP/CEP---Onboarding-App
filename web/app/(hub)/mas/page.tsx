@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
-import { NAV } from "@/components/nav";
+import { NAV } from "@/lib/nav-items";
 import { getHub } from "@/lib/data/hub";
 import { hiddenNav } from "@/lib/process";
 import { signOut } from "../../login/actions";

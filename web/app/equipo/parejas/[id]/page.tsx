@@ -5,6 +5,8 @@ import {
   AgendaEditor, ConfirmActivityButton, NoteForm, ScheduleForm, SessionStatusButtons, StepButton, TaskToggle, WaiveButton,
 } from "@/components/staff-forms";
 import { ActionForm } from "@/components/action-form";
+import { ArchiveDocument, UploadDocument } from "@/components/document-forms";
+import { FOLDER_LABEL } from "@/lib/documents";
 import { assignStaff } from "@/lib/actions/staff";
 import { formSchemas } from "@/lib/data/extra";
 import { getStaff } from "@/lib/data/staff";
@@ -76,6 +78,7 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
         <span className="chip info">{current ? `Paso ${current.position} de ${steps.data?.length} · ${current.block_name}` : "Proceso completado"}</span>
       </div>
       {staff?.isAdmin && <AssignTeam enrollmentId={id} current={staffRows.data ?? []} />}
+      <SharedDocuments enrollmentId={id} members={(members.data ?? []).map((m) => ({ profileId: m.profile_id, name: m.profiles?.full_name ?? "" }))} />
 
       <div className="grid2">
         <section className="card">
@@ -223,6 +226,26 @@ async function AssignTeam({ enrollmentId, current }: { enrollmentId: string; cur
           </ActionForm>
         ))}
       </div>
+    </details>
+  );
+}
+
+async function SharedDocuments({ enrollmentId, members }: { enrollmentId: string; members: { profileId: string; name: string }[] }) {
+  const supabase = await createClient();
+  const { data: docs } = await supabase.from("documents").select("id, folder, title, profile_id, created_at")
+    .eq("enrollment_id", enrollmentId).is("archived_at", null).order("created_at", { ascending: false });
+  return (
+    <details className="card">
+      <summary style={{ cursor: "pointer", fontWeight: 700 }}>Documentos compartidos con la pareja ({docs?.length ?? 0})</summary>
+      <div className="list" style={{ marginTop: 10 }}>
+        {(docs ?? []).map((d) => (
+          <div className="li" key={d.id}>
+            <div className="tx"><b>{d.title}</b><span>{FOLDER_LABEL[d.folder]}{d.profile_id ? ` · solo ${members.find((m) => m.profileId === d.profile_id)?.name ?? "un miembro"}` : ""} · {fmtDay(d.created_at)}</span></div>
+            <ArchiveDocument id={d.id} />
+          </div>
+        ))}
+      </div>
+      <UploadDocument enrollmentId={enrollmentId} members={members} />
     </details>
   );
 }
