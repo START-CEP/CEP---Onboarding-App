@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ActionForm } from "@/components/action-form";
 import { saveActivity } from "@/lib/actions/catalog";
 import { ACTIVITY_TYPES, type ActType } from "@/lib/activity-types";
-import { buildConfig, parseFaq, parseItems, type Faq, type Item } from "@/lib/activity-config";
+import { buildConfig, parseFaq, parseItems, videoTitle, type Faq, type Item } from "@/lib/activity-config";
 import type { Database, Json } from "@/lib/database.types";
 
 type Activity = Database["public"]["Tables"]["service_activities"]["Row"];
@@ -42,13 +42,20 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
   const cfg = (a?.config ?? {}) as Record<string, Json>;
   const { url: url0, checklist: list0, session_label: label0 } = cfg;
   // Lo que tiene campo propio no se repite en el JSON avanzado.
-  const rest = Object.fromEntries(Object.entries(cfg).filter(([k]) => !["url", "checklist", "session_label", "items", "faq"].includes(k)));
+  const rest = Object.fromEntries(Object.entries(cfg).filter(([k]) => !["url", "checklist", "session_label", "video_title", "items", "faq"].includes(k)));
   const [type, setType] = useState<ActType>(a?.type ?? "video_module");
   const [url, setUrl] = useState(typeof url0 === "string" ? url0 : "");
   const [items, setItems] = useState<ChecklistItem[]>(Array.isArray(list0) ? (list0 as ChecklistItem[]) : []);
   const [extra, setExtra] = useState(Object.keys(rest).length ? JSON.stringify(rest, null, 2) : "");
   const [label, setLabel] = useState(typeof label0 === "string" ? label0 : "");
   const [extraItems, setExtraItems] = useState<Item[]>(parseItems(cfg));
+  const [vTitle, setVTitle] = useState(videoTitle(cfg));
+  const isModule = type === "video_module";
+  const move = (i: number, d: -1 | 1) => {
+    const next = [...extraItems];
+    [next[i], next[i + d]] = [next[i + d], next[i]];
+    setExtraItems(next);
+  };
   const [faq, setFaq] = useState<Faq[]>(parseFaq(cfg));
 
   const config = (() => {
@@ -68,6 +75,7 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
       url,
       checklist,
       sessionLabel: uses("sessionLabel", type) ? label : "",
+      videoTitle: isModule ? vTitle : "",
       items: uses("items", type) ? extraItems : [],
       faq: uses("faq", type) ? faq : [],
     }));
@@ -94,15 +102,21 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
         <div className="field wide"><label htmlFor={`s-${a?.id}`}>Resumen</label><input id={`s-${a?.id}`} className="input" name="summary" defaultValue={a?.summary ?? ""} placeholder="Una línea: qué pasa en esta actividad" /></div>
 
         {uses("asset", type) && (
-          <div className="field"><label>{type === "contract" ? "Video de preguntas frecuentes" : type === "group_session" ? "Video de presentación" : "Video o archivo"}</label>
+          <div className="field"><label>{type === "contract" ? "Video de preguntas frecuentes" : type === "group_session" ? "Video de presentación" : isModule ? "Video 1 (el principal)" : "Video o archivo"}</label>
             <select className="input" name="asset" defaultValue={a?.asset_id ?? ""}>
               <option value="">—</option>{assets.map((x) => <option key={x.id} value={x.id}>{x.kind === "video" ? "🎬" : "📄"} {x.title}</option>)}
             </select>
             <span className="hint"><Link href="/equipo/contenidos" target="_blank" style={{ textDecoration: "underline" }}>Subir uno nuevo ↗</Link></span>
           </div>
         )}
+        {isModule && (
+          <div className="field"><label>Título del video 1</label>
+            <input className="input" value={vTitle} onChange={(e) => setVTitle(e.target.value)} placeholder="Ej.: Qué es un ciclo negativo" />
+            <span className="hint">Se ve cuando el módulo tiene varios videos. Vacío: el título del módulo.</span>
+          </div>
+        )}
         {uses("form", type) && (
-          <div className="field"><label>Formulario</label>
+          <div className="field"><label>{isModule ? "Tarea del módulo" : "Formulario"}</label>
             <select className="input" name="form" defaultValue={a?.form_version_id ?? ""}>
               <option value="">—</option>
               {forms.map((f) => (
@@ -155,7 +169,8 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
 
       {uses("items", type) && (
         <div className="field">
-          <label>Más contenido (se despliega en el módulo)</label>
+          <label>{isModule ? "Más videos (lecciones 2, 3…) y material para descargar" : "Más contenido (se despliega en el módulo)"}</label>
+          {isModule && <span className="hint">Cada video es una lección: la pareja la abre directo desde la lista de módulos. Los PDF van aparte, como material.</span>}
           <div className="ae-list">
             {extraItems.map((it, i) => (
               <div className="row" key={i}>
@@ -165,10 +180,12 @@ export function ActivityEditor({ versionId, activity, tracks, roles, assets, for
                 </select>
                 <input className="input" value={it.title} placeholder="Título (p. ej. Validación emocional)" aria-label="Título"
                   onChange={(e) => setExtraItems(extraItems.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
+                {isModule && <button type="button" className="btn ghost sm" aria-label="Subir" disabled={i === 0} onClick={() => move(i, -1)}>↑</button>}
+                {isModule && <button type="button" className="btn ghost sm" aria-label="Bajar" disabled={i === extraItems.length - 1} onClick={() => move(i, 1)}>↓</button>}
                 <button type="button" className="btn ghost sm" aria-label="Quitar" onClick={() => setExtraItems(extraItems.filter((_, j) => j !== i))}>×</button>
               </div>
             ))}
-            <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setExtraItems([...extraItems, { asset_id: "", title: "" }])}>+ Añadir video o recurso</button>
+            <button type="button" className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={() => setExtraItems([...extraItems, { asset_id: "", title: "" }])}>{isModule ? "+ Añadir video o PDF" : "+ Añadir video o recurso"}</button>
           </div>
         </div>
       )}

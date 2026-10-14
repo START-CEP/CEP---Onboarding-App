@@ -2,12 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/database.types";
 import type { Hub } from "@/lib/data/hub";
 import { parseSchema, type Section } from "@/lib/forms";
+import { parseItems, videoTitle } from "@/lib/activity-config";
+import { assets, type AssetInfo } from "@/lib/data/extra";
 
 type Tables = Database["public"]["Tables"];
 
 export type { Question, Section } from "@/lib/forms";
 
 export type ModuleStatus = "done" | "task" | "available" | "locked";
+
+/** Una lección = un video del módulo. La 1 es el video principal; las demás, los videos de config.items. */
+export type Lesson = { n: number; title: string; minutes: number | null; assetId: string | null };
 
 export type ModuleItem = {
   activityId: string;
@@ -20,12 +25,15 @@ export type ModuleItem = {
   taskSent: boolean;
   partnerViewed: boolean | null;
   requiredFor: string[];
+  lessons: Lesson[];
 };
 
 export type ModuleDetail = ModuleItem & {
   enrollmentId: string;
   responseScope: Database["public"]["Enums"]["response_scope"];
-  video: { kind: "bunny"; libraryId: string; videoId: string; ready: boolean } | { kind: "pending" } | null;
+  /** Lección abierta (1 si no se pidió otra) y su video. */
+  lesson: Lesson;
+  lessonAsset: AssetInfo | null;
   form: { versionId: string; sections: Section[] } | null;
   viewedByMe: boolean;
   submitted: Pick<Tables["form_submissions"]["Row"], "id" | "answers" | "submitted_at"> | null;
@@ -34,7 +42,7 @@ export type ModuleDetail = ModuleItem & {
 };
 
 /** Módulos en video del servicio (genérico: toda actividad video_module de la inscripción). */
-export async function getModules(hub: Hub, focusKey?: string) {
+export async function getModules(hub: Hub, focusKey?: string, lessonN?: number) {
   const supabase = await createClient();
   const videos = hub.activities.filter((a) => a.type === "video_module");
   const ids = videos.map((a) => a.activity_id!).filter(Boolean);
@@ -46,6 +54,23 @@ export async function getModules(hub: Hub, focusKey?: string) {
     supabase.from("form_submissions").select("id, enrollment_activity_id, submitted_by, status, answers, submitted_at")
       .in("enrollment_activity_id", ids).order("created_at", { ascending: false }),
   ]);
+
+  const extras = new Map(ids.map((id) => [id, parseItems(hub.configs[id])]));
+  const library = await assets([
+    ...(acts.data ?? []).map((r) => r.asset_id ?? ""),
+    ...[...extras.values()].flat().map((i) => i.asset_id),
+  ]);
+  const mins = (id: string | null | undefined) => {
+    const s = id ? library.get(id)?.duration_seconds : null;
+    return s ? Math.round(s / 60) : null;
+  };
+  // Los archivos (PDF…) no son lecciones: se muestran aparte como material del módulo.
+  const lessonsOf = (id: string, title: string): Lesson[] => {
+    const main = acts.data?.find((x) => x.id === id)?.asset_id ?? null;
+    const first: Lesson = { n: 1, title: videoTitle(hub.configs[id]) || title.split(" · ").slice(1).join(" · ") || title, minutes: mins(main), assetId: main };
+    const rest = (extras.get(id) ?? []).filter((i) => (library.get(i.asset_id)?.kind ?? "video") === "video");
+    return [first, ...rest.map((i, k) => ({ n: k + 2, title: i.title || library.get(i.asset_id)?.title || "Video", minutes: mins(i.asset_id), assetId: i.asset_id }))];
+  };
 
   const viewed = (activityId: string, profileId: string) =>
     (progress.data ?? []).some((p) => p.enrollment_activity_id === activityId && p.profile_id === profileId && p.status === "completed");
@@ -74,6 +99,7 @@ export async function getModules(hub: Hub, focusKey?: string) {
       taskSent: sent,
       partnerViewed: partner ? viewed(a.activity_id!, partner.profileId) : null,
       requiredFor,
+      lessons: lessonsOf(a.activity_id!, a.title ?? ""),
     };
   });
 
@@ -86,14 +112,10 @@ export async function getModules(hub: Hub, focusKey?: string) {
   if (!focus) return { items, detail: null };
 
   const row = acts.data?.find((x) => x.id === focus.activityId);
-  const [asset, form] = await Promise.all([
-    row?.asset_id
-      ? supabase.from("content_assets").select("provider, provider_id, provider_library_id, processing_status").eq("id", row.asset_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    row?.form_version_id
-      ? supabase.from("form_versions").select("id, schema").eq("id", row.form_version_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
+  const form = row?.form_version_id
+    ? await supabase.from("form_versions").select("id, schema").eq("id", row.form_version_id).maybeSingle()
+    : { data: null };
+  const lesson = focus.lessons.find((l) => l.n === lessonN) ?? focus.lessons[0];
 
   const mine = mySubs(focus.activityId);
   const submitted = mine.find((s) => s.status === "submitted") ?? null;
@@ -106,17 +128,12 @@ export async function getModules(hub: Hub, focusKey?: string) {
       .filter(Boolean);
   }
 
-  const a = asset.data;
-  const video: ModuleDetail["video"] =
-    a?.provider === "bunny" && a.provider_id && a.provider_library_id
-      ? { kind: "bunny", libraryId: a.provider_library_id, videoId: a.provider_id, ready: a.processing_status === "ready" }
-      : a ? { kind: "pending" } : null;
-
   const detail: ModuleDetail = {
     ...focus,
     enrollmentId: hub.enrollment.enrollment_id!,
     responseScope: row?.response_scope ?? "individual",
-    video,
+    lesson,
+    lessonAsset: lesson.assetId ? library.get(lesson.assetId) ?? null : null,
     form: form.data ? { versionId: form.data.id, sections: parseSections(form.data.schema) } : null,
     viewedByMe: viewed(focus.activityId, hub.me.id),
     submitted: submitted ? { id: submitted.id, answers: submitted.answers, submitted_at: submitted.submitted_at } : null,

@@ -1,6 +1,7 @@
 // Claves de configuración de una actividad (service_activities.config → enrollment_activities.config):
 //   session_label  tipo de sesión que ve la pareja («Sesión de terapia de pareja», «Sesión de coaching en pareja»…)
-//   items          contenidos extra de un módulo: [{ asset_id, title }]
+//   video_title    título del video principal de un módulo (su lección 1)
+//   items          contenidos extra de un módulo: [{ asset_id, title }]; los videos son sus lecciones 2, 3…
 //   faq            preguntas frecuentes (contrato): [{ q, a }]
 type Cfg = unknown;
 export type Item = { asset_id: string; title: string };
@@ -24,6 +25,13 @@ export function parseItems(cfg: Cfg): Item[] {
   });
 }
 
+export function videoTitle(cfg: Cfg): string {
+  return str(obj(cfg).video_title);
+}
+
+/** Dirección de un módulo y, si no es la primera, de una de sus lecciones. */
+export const moduleHref = (key: string, lesson = 1) => `/modulos?m=${encodeURIComponent(key)}${lesson > 1 ? `&l=${lesson}` : ""}`;
+
 export function parseFaq(cfg: Cfg): Faq[] {
   const list = obj(cfg).faq;
   if (!Array.isArray(list)) return [];
@@ -35,11 +43,12 @@ export function parseFaq(cfg: Cfg): Faq[] {
 }
 
 /** Une los campos con formulario propio a la configuración existente, sin perder claves que no conoce. */
-export function buildConfig(base: Record<string, unknown>, f: { url?: string; sessionLabel?: string; items?: Item[]; faq?: Faq[]; checklist?: unknown[] }) {
+export function buildConfig(base: Record<string, unknown>, f: { url?: string; sessionLabel?: string; videoTitle?: string; items?: Item[]; faq?: Faq[]; checklist?: unknown[] }) {
   const out: Record<string, unknown> = { ...base };
   const set = (k: string, v: unknown, keep: boolean) => { if (keep) out[k] = v; else delete out[k]; };
   if (f.url !== undefined) set("url", f.url.trim(), Boolean(f.url.trim()));
   if (f.sessionLabel !== undefined) set("session_label", f.sessionLabel.trim(), Boolean(f.sessionLabel.trim()));
+  if (f.videoTitle !== undefined) set("video_title", f.videoTitle.trim(), Boolean(f.videoTitle.trim()));
   if (f.items !== undefined) {
     const items = f.items.filter((i) => i.asset_id).map((i) => ({ asset_id: i.asset_id, title: i.title.trim() }));
     set("items", items, items.length > 0);
