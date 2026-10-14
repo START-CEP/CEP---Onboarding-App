@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import {
-  AgendaEditor, ConfirmActivityButton, NoteForm, ScheduleForm, SessionStatusButtons, StepButton, TaskToggle, WaiveButton,
+  AgendaEditor, ConfirmActivityButton, NoteForm, ScheduleForm, SessionRecordForm, SessionStatusButtons, StepButton, TaskToggle, WaiveButton,
 } from "@/components/staff-forms";
 import { ActionForm } from "@/components/action-form";
 import { ArchiveDocument, UploadDocument } from "@/components/document-forms";
@@ -10,6 +10,8 @@ import { FOLDER_LABEL } from "@/lib/documents";
 import { assignStaff } from "@/lib/actions/staff";
 import { formSchemas } from "@/lib/data/extra";
 import { getStaff } from "@/lib/data/staff";
+import { progressFor } from "@/lib/data/team";
+import { moduleRows } from "@/lib/team-progress";
 import { answerText } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import { firstName, fmtDay, fmtTime } from "@/lib/process";
@@ -54,6 +56,14 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
   const label = (config: unknown, key: string) =>
     ((config as { checklist?: { key: string; label: string }[] } | null)?.checklist ?? []).find((c) => c.key === key)?.label ?? key;
   const schemas = await formSchemas([...new Set((subs.data ?? []).map((s) => s.form_version_id).filter((v): v is string => Boolean(v)))]);
+  const sessionIds = (sessions.data ?? []).map((x) => x.id);
+  const [{ data: records }, progress] = await Promise.all([
+    staff.isClinician && sessionIds.length
+      ? supabase.from("session_records").select("enrollment_session_id, transcript, brief, report, updated_at, profiles(full_name)").in("enrollment_session_id", sessionIds)
+      : Promise.resolve({ data: [] as never[] }),
+    progressFor([id]),
+  ]);
+  const modules = moduleRows(progress.get(id) ?? { acts: [], members: [], viewed: [], submitted: [] });
   const files = await Promise.all((subs.data ?? []).flatMap((s) => s.submission_files.map(async (f) => {
     const path = f.files?.path;
     if (!path) return null;
@@ -114,15 +124,28 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
                         label={open?.status === "requested" ? "Confirmar solicitud" : open ? "Cambiar fecha" : "Agendar"} />
                     )}
                     <AgendaEditor activityId={a.activity_id!} items={items.map((i) => ({ id: i.id, body: i.body }))} />
-                    {list.filter((s) => s.status === "completed").map((s) => (
-                      <div key={`n-${s.id}`} className="qblock" style={{ gap: 6 }}>
-                        <span className="small" style={{ fontWeight: 700 }}>Notas clínicas</span>
-                        {(notes.data ?? []).filter((n) => n.enrollment_session_id === s.id).map((n) => (
-                          <p key={n.id} className="small"><b>{n.profiles?.full_name}</b> · {fmtDay(n.created_at)}: {n.body}</p>
-                        ))}
-                        {staff.isClinician && <NoteForm sessionId={s.id} />}
-                      </div>
-                    ))}
+                    {list.filter((s) => s.status === "completed" || (s.status === "scheduled" && s.scheduled_at && new Date(s.scheduled_at).getTime() < (progress.get(id)?.now.getTime() ?? 0))).map((s) => {
+                      const rec = (records ?? []).find((r) => r.enrollment_session_id === s.id);
+                      const own = (notes.data ?? []).filter((n) => n.enrollment_session_id === s.id);
+                      return (
+                        <div key={`n-${s.id}`} className="qblock" style={{ gap: 10 }}>
+                          {staff.isClinician && (
+                            <SessionRecordForm sessionId={s.id}
+                              initial={{ transcript: rec?.transcript ?? "", brief: rec?.brief ?? "", report: rec?.report ?? "" }}
+                              updatedLabel={rec ? `actualizado el ${fmtDay(rec.updated_at)}${rec.profiles?.full_name ? ` por ${rec.profiles.full_name}` : ""}` : undefined} />
+                          )}
+                          {(own.length > 0 || staff.isClinician) && (
+                            <details>
+                              <summary className="small" style={{ cursor: "pointer", fontWeight: 700 }}>Notas clínicas ({own.length})</summary>
+                              <div className="qblock" style={{ gap: 6, marginTop: 8 }}>
+                                {own.map((n) => <p key={n.id} className="small"><b>{n.profiles?.full_name}</b> · {fmtDay(n.created_at)}: {n.body}</p>)}
+                                {staff.isClinician && <NoteForm sessionId={s.id} />}
+                              </div>
+                            </details>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
@@ -174,29 +197,70 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
         </div>
       </div>
 
+      {modules.length > 0 && (
+        <section className="card">
+          <div className="ch"><h2>Módulos</h2><span className="muted small">Ver el video y entregar la tarea son dos cosas distintas</span></div>
+          <div className="scrollx">
+            <div className="modgrid" style={{ ["--cols" as string]: 2, minWidth: 520 }}>
+              <div className="r h"><span>Módulo</span><span>Video visto</span><span>Tarea entregada</span></div>
+              {modules.map((m) => (
+                <div className="r" key={m.id}>
+                  <span><b>{m.key}</b> <span className="small muted">{m.title}</span></span>
+                  <span className="marks">
+                    {m.members.map((x) => <span key={x.profileId} className={`mark ${x.viewed ? "on" : ""}`}>{x.viewed ? <Icon name="check" size={11} /> : null}{x.name}</span>)}
+                  </span>
+                  <span className="marks">
+                    {m.submitted === null ? <span className="small muted">Sin tarea</span>
+                      : m.members.map((x) => <span key={x.profileId} className={`mark ${x.submitted ? "on" : ""}`}>{x.submitted ? <Icon name="check" size={11} /> : null}{x.name}</span>)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <section className="card">
-        <div className="ch"><h2>Respuestas y tareas entregadas</h2><span className="muted small">Las individuales solo las ve el clínico asignado y admin</span></div>
+        <div className="ch"><h2>Respuestas y tareas entregadas</h2><span className="muted small">Las de los dos, lado a lado. Las individuales solo las ve el clínico asignado y admin</span></div>
         {(subs.data ?? []).length === 0 ? <p className="muted">Todavía no hay entregas.</p> : (
           <div className="list">
-            {subs.data!.map((s) => {
-              const act = acts.data?.find((a) => a.activity_id === s.enrollment_activity_id);
-              const raw = (s.answers ?? {}) as Record<string, unknown>;
-              const questions = (schemas.get(s.form_version_id ?? "") ?? []).flatMap((sec) => sec.questions);
-              const known = questions.filter((q) => q.key in raw).map((q) => ({ key: q.key, label: q.label, text: answerText(q, raw[q.key]) }));
-              const answers = [...known, ...Object.keys(raw).filter((k) => !questions.some((q) => q.key === k)).map((k) => ({ key: k, label: k, text: answerText(undefined, raw[k]) }))];
-              const own = files.filter((f) => f?.submission === s.id);
-              return (
-                <details className="li" key={s.id} style={{ display: "block" }}>
-                  <summary style={{ cursor: "pointer" }}>
-                    <b>{act?.title}</b> · <span className="small muted">{s.response_scope === "shared" ? "En pareja" : nameOf(s.submitted_by)} · {s.submitted_at ? fmtDay(s.submitted_at) : ""}</span>
-                  </summary>
-                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
-                    {answers.map((x) => <div key={x.key} className="small"><b style={{ display: "block" }}>{x.label}</b><span style={{ whiteSpace: "pre-wrap" }}>{x.text}</span></div>)}
-                    {own.map((f) => f && <a key={f.name} className="small" href={f.url ?? "#"} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>Abrir {f.name}</a>)}
-                  </div>
-                </details>
-              );
-            })}
+            {[...new Set(subs.data!.map((s) => s.enrollment_activity_id))]
+              .map((aid) => ({ aid, act: acts.data?.find((a) => a.activity_id === aid), list: subs.data!.filter((s) => s.enrollment_activity_id === aid) }))
+              .sort((x, y) => (x.act?.position ?? 0) - (y.act?.position ?? 0))
+              .map(({ aid, act, list }) => {
+                const shared = list.every((s) => s.response_scope === "shared");
+                const cols = shared ? list.slice(0, 1) : (members.data ?? []).map((m) => list.find((s) => s.submitted_by === m.profile_id) ?? m.profile_id);
+                const latest = list.map((s) => s.submitted_at ?? "").sort().at(-1);
+                return (
+                  <details className="li" key={aid} style={{ display: "block" }}>
+                    <summary style={{ cursor: "pointer" }}>
+                      <b>{act?.key ? `${act.key} · ` : ""}{act?.title}</b> · <span className="small muted">
+                        {shared ? "En pareja" : (members.data ?? []).map((m) => `${firstName(m.profiles?.full_name ?? "")} ${list.some((s) => s.submitted_by === m.profile_id) ? "✓" : "pendiente"}`).join(" · ")}
+                        {latest ? ` · ${fmtDay(latest)}` : ""}</span>
+                    </summary>
+                    <div className="pairgrid" style={{ marginTop: 10, ["--cols" as string]: cols.length }}>
+                      {cols.map((s) => {
+                        if (typeof s === "string") return (
+                          <div className="col" key={s}><b>{nameOf(s)}</b><p className="small muted">Todavía no la entrega.</p></div>
+                        );
+                        const raw = (s.answers ?? {}) as Record<string, unknown>;
+                        const questions = (schemas.get(s.form_version_id ?? "") ?? []).flatMap((sec) => sec.questions);
+                        const known = questions.filter((q) => q.key in raw).map((q) => ({ key: q.key, label: q.label, text: answerText(q, raw[q.key]) }));
+                        const answers = [...known, ...Object.keys(raw).filter((k) => !questions.some((q) => q.key === k)).map((k) => ({ key: k, label: k, text: answerText(undefined, raw[k]) }))];
+                        const own = files.filter((f) => f?.submission === s.id);
+                        return (
+                          <div className="col" key={s.id}>
+                            <b>{s.response_scope === "shared" ? `En pareja · envió ${nameOf(s.submitted_by)}` : nameOf(s.submitted_by)}</b>
+                            <span className="small muted">{s.submitted_at ? `Entregada el ${fmtDay(s.submitted_at)}` : ""}</span>
+                            {answers.map((x) => <div key={x.key} className="small"><b style={{ display: "block" }}>{x.label}</b><span style={{ whiteSpace: "pre-wrap" }}>{x.text}</span></div>)}
+                            {own.map((f) => f && <a key={f.name} className="small" href={f.url ?? "#"} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>Abrir {f.name}</a>)}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </details>
+                );
+              })}
           </div>
         )}
       </section>

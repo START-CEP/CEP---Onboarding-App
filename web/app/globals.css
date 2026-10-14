@@ -420,3 +420,27 @@ a.who:hover{background:var(--surface2)}
 .msg.team{background:var(--accent-soft);align-self:flex-start}
 .modextra{border-top:1px solid var(--line);padding:10px 0}.modextra summary{display:flex;gap:10px;align-items:center;cursor:pointer;flex-wrap:wrap}.modextra[open] summary{margin-bottom:10px}
 .modextra summary b{flex:1;min-width:0}
+
+/* ---------- Panel del equipo: tablero, sesiones por profesional, registros de sesión ---------- */
+.board td{vertical-align:top}
+.board tr.dim td{opacity:.55}
+.pros{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.procard{display:flex;flex-direction:column;gap:14px}
+.procard .who2{display:flex;align-items:center;gap:10px}
+.procard .who2 .av{width:40px;height:40px}
+.kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.kpi{background:var(--bg);border:1px solid var(--line);border-radius:var(--rad-s);padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.kpi b{font-family:var(--display);font-size:22px;line-height:1.1;font-variant-numeric:tabular-nums}
+.kpi span{font-size:11.5px;color:var(--muted);font-weight:600}
+.modgrid{display:grid;gap:0}
+.modgrid .r{display:grid;grid-template-columns:minmax(160px,1.4fr) repeat(var(--cols),minmax(120px,1fr));gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--line)}
+.modgrid .r.h{border-top:0;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding-top:0}
+.marks{display:flex;gap:6px;flex-wrap:wrap}
+.mark{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.mark.on{background:var(--ok-soft);color:var(--ok)}
+.pairgrid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:14px}
+@media(max-width:860px){.pairgrid{grid-template-columns:1fr}}
+.pairgrid .col{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:var(--rad-s);background:var(--bg)}
+.rec{display:flex;flex-direction:column;gap:10px;padding:14px;border:1px solid var(--line);border-radius:var(--rad-s);background:var(--bg)}
+.rec textarea.input{background:var(--surface)}
+.rec .mono{font-family:ui-monospace,monospace;font-size:12px}

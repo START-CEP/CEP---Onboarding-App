@@ -2548,6 +2548,51 @@ export type Database = {
           },
         ]
       }
+      session_records: {
+        Row: {
+          brief: string | null
+          created_at: string
+          enrollment_session_id: string
+          report: string | null
+          transcript: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          brief?: string | null
+          created_at?: string
+          enrollment_session_id: string
+          report?: string | null
+          transcript?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          brief?: string | null
+          created_at?: string
+          enrollment_session_id?: string
+          report?: string | null
+          transcript?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "session_records_enrollment_session_id_fkey"
+            columns: ["enrollment_session_id"]
+            isOneToOne: true
+            referencedRelation: "enrollment_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "session_records_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_form_invites: {
         Row: {
           created_at: string

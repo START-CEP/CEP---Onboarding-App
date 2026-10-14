@@ -8,8 +8,10 @@ type Item = { href: string; label: string; icon: IconName };
 
 const TEAM: Item[] = [
   { href: "/equipo", label: "Parejas y agenda", icon: "users" },
+  { href: "/equipo/sesiones", label: "Sesiones", icon: "cal" },
   { href: "/equipo/coaching", label: "Coaching grupal", icon: "chat" },
   { href: "/equipo/soporte", label: "Consultas de parejas", icon: "chat" },
+  { href: "/equipo/satisfaccion", label: "Satisfacción", icon: "heart" },
 ];
 const SALES: Item[] = [{ href: "/equipo/inscribir", label: "Inscribir pareja", icon: "user" }];
 const ADMIN: Item[] = [

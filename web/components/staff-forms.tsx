@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { Icon } from "@/components/icon";
 import {
   addAgendaItem, addSessionNote, completeStep, confirmActivity, removeAgendaItem, scheduleSession,
-  setQuestionStatus, setSessionStatus, toggleStaffTask, waiveRequirement, type Result,
+  saveSessionRecord, setQuestionStatus, setSessionStatus, toggleStaffTask, waiveRequirement, type Result,
 } from "@/lib/actions/staff";
 
 function useAction() {
@@ -137,5 +137,46 @@ export function QuestionButtons({ id }: { id: string }) {
       <button className="btn ghost sm" disabled={pending} onClick={() => run(() => setQuestionStatus(id, "dismissed"))}>Descartar</button>
       <Err e={error} />
     </div>
+  );
+}
+
+/** Registro de la sesión: resumen y transcripción de Plaud, y el reporte del equipo. Solo clínico asignado y admin. */
+export function SessionRecordForm({ sessionId, initial, updatedLabel }: {
+  sessionId: string;
+  initial: { transcript: string; brief: string; report: string };
+  updatedLabel?: string;
+}) {
+  const [f, setF] = useState(initial);
+  const [saved, setSaved] = useState(false);
+  const { pending, error, run } = useAction();
+  const dirty = f.transcript !== initial.transcript || f.brief !== initial.brief || f.report !== initial.report;
+  const words = f.transcript.trim() ? f.transcript.trim().split(/\s+/).length : 0;
+  return (
+    <form className="rec" onSubmit={(e) => { e.preventDefault(); setSaved(false); run(async () => { const r = await saveSessionRecord(sessionId, f); if (r.ok) setSaved(true); return r; }); }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+        <span className="small" style={{ fontWeight: 700 }}>Registro de la sesión</span>
+        <span className="small muted"><Icon name="lock" size={12} /> Solo el equipo clínico asignado y admin{updatedLabel ? ` · ${updatedLabel}` : ""}</span>
+      </div>
+      <div className="field">
+        <label htmlFor={`brief-${sessionId}`} style={{ fontSize: 13 }}>Resumen de Plaud</label>
+        <textarea id={`brief-${sessionId}`} className="input" value={f.brief} onChange={(e) => setF({ ...f, brief: e.target.value })}
+          placeholder="Pega aquí el resumen (brief) que entrega Plaud" style={{ minHeight: 110 }} />
+      </div>
+      <details>
+        <summary className="small" style={{ cursor: "pointer", fontWeight: 700 }}>Transcripción completa {words ? `· ${words.toLocaleString("es")} palabras` : "· vacía"}</summary>
+        <textarea className="input mono" value={f.transcript} onChange={(e) => setF({ ...f, transcript: e.target.value })} aria-label="Transcripción completa"
+          placeholder="Pega aquí la transcripción completa de Plaud" style={{ minHeight: 220, marginTop: 8 }} />
+      </details>
+      <div className="field">
+        <label htmlFor={`report-${sessionId}`} style={{ fontSize: 13 }}>Reporte de la sesión</label>
+        <textarea id={`report-${sessionId}`} className="input" value={f.report} onChange={(e) => setF({ ...f, report: e.target.value })}
+          placeholder="Qué se trabajó, acuerdos, próximos pasos…" style={{ minHeight: 130 }} />
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <button className="btn soft sm" disabled={pending || !dirty}>{pending ? "Guardando…" : "Guardar registro"}</button>
+        {saved && !dirty && <span className="chip ok" role="status">Guardado</span>}
+        <Err e={error} />
+      </div>
+    </form>
   );
 }

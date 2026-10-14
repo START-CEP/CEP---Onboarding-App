@@ -113,3 +113,18 @@ export async function assignStaff(_p: { error?: string; ok?: string }, fd: FormD
   refresh();
   return { ok: "Responsable actualizado." };
 }
+
+const LIMITS = { transcript: 400000, brief: 40000, report: 40000 } as const;
+
+/** Transcripción (Plaud), resumen de Plaud y reporte de una sesión. Solo el clínico asignado o admin (lo exige la RLS). */
+export async function saveSessionRecord(sessionId: string, fields: { transcript: string; brief: string; report: string }): Promise<Result> {
+  const { supabase, uid } = await staffSession();
+  for (const k of ["transcript", "brief", "report"] as const) {
+    if (fields[k].length > LIMITS[k]) return { error: `El texto de «${k === "transcript" ? "transcripción" : k === "brief" ? "resumen" : "reporte"}» es demasiado largo.` };
+  }
+  const clean = (v: string) => (v.trim() ? v.trim() : null);
+  const { error } = await supabase.from("session_records").upsert({
+    enrollment_session_id: sessionId, transcript: clean(fields.transcript), brief: clean(fields.brief), report: clean(fields.report), updated_by: uid,
+  }, { onConflict: "enrollment_session_id" });
+  return done(error, "Solo el clínico asignado o admin pueden guardar el registro de la sesión.");
+}

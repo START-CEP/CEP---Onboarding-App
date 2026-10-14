@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { GroupSessionEditor, NewGroupSession, RemoveResource } from "@/components/content-forms";
+import { Icon } from "@/components/icon";
 import { QuestionButtons } from "@/components/staff-forms";
 import { getStaff } from "@/lib/data/staff";
 import { createClient } from "@/lib/supabase/server";
@@ -20,13 +21,16 @@ async function TeamCoaching() {
   const [{ data: programs }, { data: sessions }, { data: questions }, { data: resources }, { data: assetList }, { data: attendance }] = await Promise.all([
     supabase.from("group_programs").select("id, name, cadence_days, default_time").is("archived_at", null),
     supabase.from("group_sessions").select("id, program_id, scheduled_at, title, meeting_url, status, recording_asset_id").order("scheduled_at"),
-    supabase.from("group_session_questions").select("id, group_session_id, body, is_anonymous, status, created_at, profiles(full_name)").neq("status", "dismissed").order("created_at"),
+    supabase.from("group_session_questions").select("id, group_session_id, enrollment_id, body, is_anonymous, status, created_at, profiles(full_name), enrollments(client_units(display_name))").neq("status", "dismissed").order("created_at"),
     supabase.from("resources").select("id, title, attach_id").eq("attach_type", "group_session").is("archived_at", null),
     supabase.from("content_assets").select("id, kind, title").is("archived_at", null),
     supabase.from("group_session_attendance").select("group_session_id"),
   ]);
   const videos = (assetList ?? []).filter((a) => a.kind === "video").map((a) => ({ id: a.id, title: a.title }));
   const pdfs = (assetList ?? []).filter((a) => a.kind === "pdf").map((a) => ({ id: a.id, title: a.title }));
+  const sessionOf = (id: string) => (sessions ?? []).find((s) => s.id === id);
+  const open = (questions ?? []).filter((q) => q.status !== "answered")
+    .sort((a, b) => (sessionOf(a.group_session_id)?.scheduled_at ?? "").localeCompare(sessionOf(b.group_session_id)?.scheduled_at ?? "") || a.created_at.localeCompare(b.created_at));
 
   return (
     <>
@@ -37,6 +41,33 @@ async function TeamCoaching() {
           <p className="lead">Fechas, enlace de cada encuentro, preguntas de las parejas y, después, la grabación y el recurso descargable.</p>
         </div>
       </div>
+
+      <section className="card anchor" id="preguntas">
+        <div className="ch">
+          <h2>Preguntas de las parejas</h2>
+          <span className="muted small">Todas las que envían desde su espacio, juntas para preparar el encuentro</span>
+        </div>
+        {open.length === 0 ? <p className="muted">No hay preguntas pendientes.</p> : (
+          <div className="list">
+            {open.map((q) => {
+              const gs = sessionOf(q.group_session_id);
+              return (
+                <div className="li" key={q.id} style={{ alignItems: "flex-start", flexWrap: "wrap" }}>
+                  <span className={`ico ${q.status === "new" ? "warn" : "info"}`}><Icon name="chat" size={16} /></span>
+                  <div className="tx" style={{ minWidth: 220 }}>
+                    <b style={{ fontWeight: 500 }}>«{q.body}»</b>
+                    <span>
+                      {q.is_anonymous ? "Anónima" : `${q.profiles?.full_name ?? ""}${q.enrollments?.client_units?.display_name ? ` (${q.enrollments.client_units.display_name})` : ""}`}
+                      {gs ? ` · para el ${fmtDay(gs.scheduled_at)}` : ""} · {q.status === "new" ? "Nueva" : "Se tratará"}
+                    </span>
+                  </div>
+                  <QuestionButtons id={q.id} />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
       {(programs ?? []).map((p) => {
         const list = (sessions ?? []).filter((s) => s.program_id === p.id);
         return (
