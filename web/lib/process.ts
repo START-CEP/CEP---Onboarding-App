@@ -87,6 +87,18 @@ function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Acti
   const short = shortTitle(title);
   const why = `${r.is_mandatory ? "Es obligatorio para" : "Lo necesitan para"} entrar a ${target}`;
   const base = { why, href: hrefFor(r.required_type ?? act?.type ?? "checklist"), minutes: act?.estimated_minutes };
+
+  // Requisito que cumple cada miembro: si yo ya hice mi parte, lo que falta es de mi pareja.
+  const perMember = act?.participants === "each_member" || act?.response_scope === "individual";
+  const myPartDone =
+    (r.criterion === "viewed" && hub.mine.viewed.includes(r.required_activity_id ?? "")) ||
+    ((r.criterion === "task_submitted" || r.criterion === "form_submitted") && hub.mine.submitted.includes(r.required_activity_id ?? ""));
+  const partner = hub.members.find((m) => m.profileId !== hub.me.id);
+  if (perMember && myPartDone && partner) {
+    const what = r.criterion === "viewed" ? `vea el ${short}` : r.criterion === "task_submitted" ? `entregue la tarea del ${short}` : `responda ${short}`;
+    return { ...base, title: `Falta que ${firstName(partner.name)} ${what}`, why: `Tú ya hiciste tu parte. ${why}.`, icon: "users" };
+  }
+
   switch (r.criterion) {
     case "task_submitted":
       return act?.task_pending
@@ -116,7 +128,9 @@ export function todayActions(hub: Hub): Action[] {
   if (step) {
     const target = stepTarget(hub, step);
     const unmet = stepRequirements(hub, step.step_id).filter((r) => !r.is_met);
-    unmet.forEach((r) => actions.push(actionForRequirement(hub, r, target)));
+    // Primero lo que esta persona puede hacer; después lo que falta de su pareja.
+    const reqActions = unmet.map((r) => actionForRequirement(hub, r, target));
+    actions.push(...reqActions.filter((a) => a.icon !== "users"), ...reqActions.filter((a) => a.icon === "users"));
     if (unmet.length === 0) {
       const who = staffFor(hub, step.responsible_role_id)?.personName;
       if (step.activity_type === "therapy_session") {

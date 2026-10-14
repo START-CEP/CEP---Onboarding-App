@@ -1,8 +1,148 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/components/coming-soon";
+import Link from "next/link";
+import { Suspense } from "react";
+import { HomeworkForm, MarkViewed, UploadHomework } from "@/components/homework";
+import { Icon } from "@/components/icon";
+import { bunnyEmbedUrl } from "@/lib/bunny";
+import { getHub } from "@/lib/data/hub";
+import { getModules, type ModuleDetail, type ModuleItem } from "@/lib/data/modules";
+import { firstName, fmtDay } from "@/lib/process";
 
 export const metadata: Metadata = { title: "Módulos · CEP" };
 
-export default function Page() {
-  return <ComingSoon title="Módulos" icon="book" what="Los videos de cada módulo y sus tareas, en línea o en PDF." />;
+export default function ModulesPage({ searchParams }: PageProps<"/modulos">) {
+  return (
+    <Suspense fallback={<section className="card" style={{ minHeight: 420 }} aria-busy="true" />}>
+      <Modules searchParams={searchParams} />
+    </Suspense>
+  );
+}
+
+const STATUS: Record<ModuleItem["status"], { icon: "check" | "pen" | "play" | "lock"; cls: string; text: string }> = {
+  done: { icon: "check", cls: "ok", text: "Visto · tarea entregada" },
+  task: { icon: "pen", cls: "warn", text: "Visto · falta la tarea" },
+  available: { icon: "play", cls: "info", text: "Disponible" },
+  locked: { icon: "lock", cls: "", text: "Se abre al cumplir su requisito" },
+};
+
+async function Modules({ searchParams }: { searchParams: PageProps<"/modulos">["searchParams"] }) {
+  const sp = await searchParams;
+  const focusKey = typeof sp.m === "string" ? sp.m : undefined;
+  const tab = sp.t === "pdf" ? "pdf" : "online";
+  const { me, hub } = await getHub();
+  if (!me || !hub) return <section className="card empty">Todavía no tienes un proceso activo.</section>;
+
+  const { items, detail } = await getModules(hub, focusKey);
+  const partner = hub.members.find((m) => m.profileId !== me.id);
+  const seen = items.filter((m) => m.status === "done" || m.status === "task").length;
+
+  return (
+    <>
+      <div className="ph">
+        <div>
+          <p className="eyebrow">Videos y tareas</p>
+          <h1>Módulos</h1>
+          <p className="lead">Cada módulo prepara una sesión. Véanlo antes de la sesión que lo requiere; si quieren adelantarse, también pueden.</p>
+        </div>
+        <span className="chip info">{seen} de {items.length} vistos</span>
+      </div>
+      <div className="split">
+        <section className="card">
+          <div className="list modlist">
+            {items.map((m, i) => {
+              const s = STATUS[m.status];
+              const header = m.trackName !== items[i - 1]?.trackName && <div className="blockhead">{m.trackName}</div>;
+              return (
+                <div key={m.activityId}>
+                  {header}
+                  <Link href={`/modulos?m=${encodeURIComponent(m.key)}`} className={`li ${m.activityId === detail?.activityId ? "on" : ""}`}
+                    aria-current={m.activityId === detail?.activityId ? "true" : undefined}>
+                    <span className={`ico ${s.cls}`}><Icon name={s.icon} /></span>
+                    <div className="tx">
+                      <b>{m.title}</b>
+                      <span>{m.status === "done" && !m.hasTask ? "Visto" : m.status === "available" && m.taskSent ? "Tarea entregada · falta ver el video" : s.text}{m.requiredFor.length ? ` · para ${m.requiredFor.join(", ")}` : ""}</span>
+                    </div>
+                  </Link>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+        {detail ? <Detail d={detail} tab={tab} meId={me.id} partner={partner ? firstName(partner.name) : undefined} /> : <section className="card empty">Este servicio no tiene módulos en video.</section>}
+      </div>
+    </>
+  );
+}
+
+function Detail({ d, tab, meId, partner }: { d: ModuleDetail; tab: "online" | "pdf"; meId: string; partner?: string }) {
+  const locked = d.status === "locked";
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
+      <Video d={d} />
+      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        {!locked && <MarkViewed key={d.activityId} activityId={d.activityId} moduleKey={d.key} done={d.viewedByMe} />}
+        {partner && d.partnerViewed !== null && (
+          <span className={`chip ${d.partnerViewed ? "ok" : ""}`}>{partner}: {d.partnerViewed ? "lo vio" : "aún no lo ve"}</span>
+        )}
+        {d.requiredFor.length > 0 && <span className="chip warn"><Icon name="lock" size={13} /> Requisito para {d.requiredFor.join(", ")}</span>}
+      </div>
+
+      {d.form && !locked && (
+        <section className="card qblock">
+          <div className="ch" style={{ margin: 0 }}>
+            <h2>Tarea del módulo</h2>
+            {!d.submitted && (
+              <div className="tabs">
+                <Link href={`/modulos?m=${encodeURIComponent(d.key)}`} aria-current={tab === "online" ? "true" : undefined}
+                  className="tab" style={tabStyle(tab === "online")}>Completar en línea</Link>
+                <Link href={`/modulos?m=${encodeURIComponent(d.key)}&t=pdf`} aria-current={tab === "pdf" ? "true" : undefined}
+                  className="tab" style={tabStyle(tab === "pdf")}>Subir PDF o foto</Link>
+              </div>
+            )}
+          </div>
+
+          {d.submitted ? (
+            <>
+              <div className="alert info"><Icon name="check" /><div><b>Tarea entregada{d.submitted.submitted_at ? ` el ${fmtDay(d.submitted.submitted_at)}` : ""}.</b> Queda guardada en tu ficha; ya no se puede editar.</div></div>
+              {d.uploadedFiles.length > 0
+                ? <p className="muted">Archivo entregado: {d.uploadedFiles.join(", ")}</p>
+                : <HomeworkForm key={`${d.activityId}-sent`} activityId={d.activityId} moduleKey={d.key} sections={d.form.sections} initial={(d.submitted.answers ?? {}) as Record<string, never>} readOnly partnerName={partner} />}
+            </>
+          ) : tab === "pdf" ? (
+            <>
+              <UploadHomework key={d.activityId} activityId={d.activityId} moduleKey={d.key} folder={`${d.enrollmentId}/${d.responseScope === "shared" ? "shared" : meId}`} />
+              <p className="small muted">¿Les gusta escribir a mano? Completen la tarea en papel y suban la foto o el PDF. Recomendamos la versión en línea: así el equipo la tiene lista antes de la sesión.</p>
+            </>
+          ) : (
+            <HomeworkForm key={d.activityId} activityId={d.activityId} moduleKey={d.key} sections={d.form.sections} initial={(d.draft?.answers ?? {}) as Record<string, never>} readOnly={false} partnerName={partner} />
+          )}
+        </section>
+      )}
+    </div>
+  );
+}
+
+function tabStyle(on: boolean): React.CSSProperties {
+  return { padding: "8px 14px", borderRadius: 999, fontWeight: 700, fontSize: 13.5, color: on ? "var(--ink)" : "var(--muted)", background: on ? "var(--surface)" : "transparent" };
+}
+
+function Video({ d }: { d: ModuleDetail }) {
+  if (d.video?.kind === "bunny" && d.video.ready) {
+    return (
+      <div className="video" style={{ display: "block" }}>
+        <iframe src={bunnyEmbedUrl(d.video.libraryId, d.video.videoId)} title={d.title} loading="lazy"
+          allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen
+          style={{ border: 0, position: "absolute", inset: 0, width: "100%", height: "100%" }} />
+      </div>
+    );
+  }
+  return (
+    <div className="video" role="img" aria-label={`Video de ${d.title}`}>
+      <span className="play"><Icon name={d.status === "locked" ? "lock" : "play"} size={26} /></span>
+      <div className="cap">
+        <span>{d.title}</span>
+        <span>{d.video?.kind === "bunny" ? "Procesando video…" : "Video pendiente de subir"}</span>
+      </div>
+    </div>
+  );
 }

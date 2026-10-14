@@ -1,3 +1,4 @@
+import { connection } from "next/server";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
@@ -30,11 +31,14 @@ export type Hub = {
   groupSessions: GroupSession[];
   sessions: TherapySession[];
   staff: StaffAssignment[];
+  /** Actividades que esta persona ya vio / entregó (los requisitos individuales los cumple cada uno). */
+  mine: { viewed: string[]; submitted: string[] };
   today: Date;
 };
 
 /** Todo lo que necesita el hub del paciente. Usa la sesión del usuario: la RLS decide qué ve. */
 export const getHub = cache(async (): Promise<{ me: { id: string; name: string } | null; hub: Hub | null }> => {
+  await connection(); // datos por usuario y hora actual: siempre en tiempo de petición
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getClaims();
   const uid = auth?.claims?.sub;
@@ -58,7 +62,7 @@ export const getHub = cache(async (): Promise<{ me: { id: string; name: string }
   if (!enrollment?.enrollment_id || !enrollment.unit_id) return { me, hub: null };
   const eid = enrollment.enrollment_id;
 
-  const [unit, members, steps, requirements, activities, tracks, group, groupSessions, sessions, staff] =
+  const [unit, members, steps, requirements, activities, tracks, group, groupSessions, sessions, staff, myProgress, mySubs] =
     await Promise.all([
       supabase.from("client_units").select("kind").eq("id", enrollment.unit_id).single(),
       supabase.from("client_unit_members").select("profile_id, member_index, profiles(full_name)").eq("unit_id", enrollment.unit_id),
@@ -70,6 +74,8 @@ export const getHub = cache(async (): Promise<{ me: { id: string; name: string }
       supabase.from("group_sessions").select("id, scheduled_at, title, status").order("scheduled_at"),
       supabase.from("enrollment_sessions").select("enrollment_activity_id, scheduled_at, status").eq("enrollment_id", eid),
       supabase.from("enrollment_staff").select("care_role_id, care_roles(key, name), profiles(full_name)").eq("enrollment_id", eid),
+      supabase.from("activity_progress").select("enrollment_activity_id").eq("profile_id", uid).eq("status", "completed"),
+      supabase.from("form_submissions").select("enrollment_activity_id").eq("enrollment_id", eid).eq("submitted_by", uid).eq("status", "submitted"),
     ]);
 
   return {
@@ -96,6 +102,10 @@ export const getHub = cache(async (): Promise<{ me: { id: string; name: string }
         roleName: s.care_roles?.name ?? "",
         personName: s.profiles?.full_name ?? "",
       })),
+      mine: {
+        viewed: (myProgress.data ?? []).map((p) => p.enrollment_activity_id),
+        submitted: (mySubs.data ?? []).map((p) => p.enrollment_activity_id),
+      },
       today: new Date(),
     },
   };
