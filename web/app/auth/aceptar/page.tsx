@@ -4,17 +4,10 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-/** Solo rutas del mismo sitio: se resuelve la URL completa y se exige el mismo origen (evita //, \\, tabulaciones…). */
+/** Destinos permitidos tras aceptar: lista cerrada (no se acepta ninguna otra ruta ni dominio). */
+const ALLOWED_NEXT = new Set(["/cuenta/contrasena", "/"]);
 function safeNext(raw: string | null) {
-  const fallback = "/cuenta/contrasena";
-  if (!raw) return fallback;
-  try {
-    const url = new URL(raw, window.location.origin);
-    if (url.origin !== window.location.origin) return fallback;
-    return `${url.pathname}${url.search}${url.hash}`;
-  } catch {
-    return fallback;
-  }
+  return raw && ALLOWED_NEXT.has(raw) ? raw : "/cuenta/contrasena";
 }
 
 /**
