@@ -22,7 +22,10 @@ export type InitialItem = {
 export function InitialSteps({ items }: { items: InitialItem[] }) {
   const doneCount = items.filter((i) => i.done).length;
   const complete = doneCount === items.length;
-  const [open, setOpen] = useState(!complete);
+  // Se pliega cuando a esta persona ya no le queda nada: lo que falte es solo de su pareja.
+  const waiting = items.filter((i) => !i.done && i.waitingPartner);
+  const mineDone = items.every((i) => i.done || i.waitingPartner);
+  const [open, setOpen] = useState(!mineDone);
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string>();
@@ -32,7 +35,8 @@ export function InitialSteps({ items }: { items: InitialItem[] }) {
   if (!open) {
     return (
       <button type="button" className="initial-closed" onClick={() => setOpen(true)} aria-expanded="false">
-        <Icon name="check" size={14} /> Proceso inicial completado · {doneCount} de {items.length}
+        <Icon name="check" size={14} />{" "}
+        {complete ? `Proceso inicial completado · ${doneCount} de ${items.length}` : `Proceso inicial: tu parte está lista · falta ${waiting[0]?.waitingPartner}`}
         <span>Volver a abrir</span>
       </button>
     );
@@ -52,9 +56,15 @@ export function InitialSteps({ items }: { items: InitialItem[] }) {
       <div className="initial-h">
         <div>
           <b>Proceso inicial</b>
-          <span>{complete ? "Todo listo. Ya pueden ocultarlo." : `${doneCount} de ${items.length} hechos · márquenlos a medida que los completen`}</span>
+          <span>
+            {complete
+              ? "Todo listo. Ya pueden ocultarlo."
+              : mineDone
+                ? `Tu parte está lista. Falta que ${waiting[0]?.waitingPartner} complete: ${waiting.map((i) => i.title).join(", ")}.`
+                : `${doneCount} de ${items.length} hechos · márquenlos a medida que los completen`}
+          </span>
         </div>
-        {complete && (
+        {mineDone && (
           <button type="button" className="btn ghost sm" onClick={() => setOpen(false)} aria-expanded="true">Ocultar</button>
         )}
       </div>
