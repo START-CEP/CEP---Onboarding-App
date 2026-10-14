@@ -9,7 +9,7 @@ supabase start          # levanta el stack en Docker (puertos 553xx, no choca co
 supabase db reset       # aplica migraciones + seed de demo
 supabase test db        # 54 tests pgTAP (motor, privacidad, storage)
 supabase db lint        # sin errores
-supabase gen types typescript --local > types/database.ts
+supabase gen types typescript --linked > web/lib/database.types.ts
 ```
 
 | Servicio | URL |
@@ -83,4 +83,4 @@ Funciones: `enroll_unit`, `publish_service_version` (valida responsables, formul
 | `…14` · `…15` · `…16_authz_hardening*.sql` | endurecimiento de permisos (revisiones de seguridad) |
 | `supabase/seed/*.sql` | usuarios, 3 servicios, pareja en el paso 9 |
 | `supabase/tests/*.test.sql` | tests pgTAP |
-| `types/database.ts` | tipos para la app |
+| `web/lib/database.types.ts` | tipos para la app |

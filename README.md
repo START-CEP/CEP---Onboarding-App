@@ -39,6 +39,10 @@ python3 scripts/seed_remote_demo.py   # (una vez) demo del proceso de pareja con
 
 Las contraseñas de los usuarios de demo en la nube se guardan en `credenciales-demo.local.txt` (fuera de git).
 
+## App (Fase 3)
+
+La app está en [`web/`](web/) (Next.js 16 + Supabase). Instrucciones de local y de Vercel en [`web/README.md`](web/README.md).
+
 ## Estructura
 
 ```
@@ -48,5 +52,5 @@ supabase/
   migrations/      esquema, motor de requisitos, RLS, storage, Bunny
   seed/            usuarios y servicios de demo (no se sube a producción)
   tests/           tests pgTAP
-types/database.ts  tipos generados para la app
+web/               app Next.js (lib/database.types.ts = tipos generados)
 ```

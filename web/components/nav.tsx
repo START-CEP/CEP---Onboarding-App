@@ -1,0 +1,56 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Icon, type IconName } from "@/components/icon";
+
+export const NAV: { href: string; label: string; short: string; icon: IconName }[] = [
+  { href: "/", label: "El proceso", short: "Proceso", icon: "home" },
+  { href: "/pasos", label: "Los pasos", short: "Pasos", icon: "route" },
+  { href: "/bienvenida", label: "Bienvenida", short: "Inicio", icon: "play" },
+  { href: "/contrato", label: "Contrato", short: "Contrato", icon: "pen" },
+  { href: "/radiografia", label: "Radiografía Inicial", short: "Radiografía", icon: "pulse" },
+  { href: "/modulos", label: "Módulos", short: "Módulos", icon: "book" },
+  { href: "/terapia", label: "Sesiones de Terapia", short: "Terapia", icon: "heart" },
+  { href: "/coaching", label: "Coaching Grupal", short: "Coaching", icon: "users" },
+];
+
+const MOBILE = ["/", "/pasos", "/modulos", "/terapia", "/coaching"];
+
+function isActive(pathname: string, href: string) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
+export function SideNav() {
+  const pathname = usePathname();
+  return (
+    <>
+      {NAV.map((n) => (
+        <Link key={n.href} href={n.href} className="nav" aria-current={isActive(pathname, n.href) ? "page" : undefined}>
+          <Icon name={n.icon} />
+          <span>{n.label}</span>
+        </Link>
+      ))}
+    </>
+  );
+}
+
+export function BottomNav() {
+  const pathname = usePathname();
+  return (
+    <nav className="bnav" aria-label="Menú">
+      {NAV.filter((n) => MOBILE.includes(n.href)).map((n) => (
+        <Link key={n.href} href={n.href} aria-current={isActive(pathname, n.href) ? "page" : undefined}>
+          <Icon name={n.icon} size={20} />
+          {n.short}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+
+export function Crumb() {
+  const pathname = usePathname();
+  const item = NAV.find((n) => isActive(pathname, n.href));
+  return <b>{item?.label ?? ""}</b>;
+}

@@ -1,0 +1,85 @@
+import type { Metadata } from "next";
+import { Suspense } from "react";
+import { Icon } from "@/components/icon";
+import { getHub } from "@/lib/data/hub";
+import { firstName, roleClass, staffFor, stepRequirements } from "@/lib/process";
+
+export const metadata: Metadata = { title: "Los pasos · CEP" };
+
+export default function StepsPage() {
+  return (
+    <Suspense fallback={<section className="card" style={{ minHeight: 400 }} aria-busy="true" />}>
+      <Steps />
+    </Suspense>
+  );
+}
+
+async function Steps() {
+  const { me, hub } = await getHub();
+  if (!me || !hub) return <section className="card empty">Todavía no tienes un proceso activo.</section>;
+  const myIndex = hub.members.find((m) => m.profileId === me.id)?.memberIndex;
+  const done = hub.steps.filter((s) => s.state === "completed").length;
+
+  return (
+    <>
+      <div className="ph">
+        <div>
+          <p className="eyebrow">El camino completo</p>
+          <h1>Los {hub.steps.length} pasos de su proceso</h1>
+          <p className="lead">Cada paso tiene un responsable y un requisito para entrar. El avance clínico lo marca su terapeuta en sesión, no el módulo visto.</p>
+        </div>
+        <span className="chip info">{done} de {hub.steps.length} completados</span>
+      </div>
+      <section className="card">
+        {hub.steps.map((s, i) => {
+          const head = s.block_name !== hub.steps[i - 1]?.block_name ? <div className="blockhead">{s.block_name}</div> : null;
+          const st = s.state === "completed" ? "d" : s.state === "current" ? "n" : "";
+          const staff = staffFor(hub, s.responsible_role_id);
+          const reqs = stepRequirements(hub, s.step_id);
+          const individual = s.participants === "member_1" || s.participants === "member_2";
+          const mine = individual && myIndex === (s.participants === "member_1" ? 1 : 2);
+          const owner = individual ? hub.members.find((m) => m.memberIndex === (s.participants === "member_1" ? 1 : 2)) : undefined;
+          return (
+            <div key={s.step_id}>
+              {head}
+              <div className={`vstep ${st}`}>
+                <span className="dotn">{st === "d" ? <Icon name="check" size={16} /> : s.position}</span>
+                <div className="body">
+                  <div className="top3">
+                    <b>{s.title}</b>
+                    {staff && (
+                      <span className={`whochip ${roleClass(staff.roleKey)}`}><i>{staff.personName.charAt(0)}</i>{firstName(staff.personName)}</span>
+                    )}
+                    {individual && (mine
+                      ? <span className="chip pair"><Icon name="user" size={12} /> Tu sesión individual</span>
+                      : <span className="chip">Sesión individual de {firstName(owner?.name ?? "")}</span>)}
+                    {st === "d" && <span className="chip ok">Hecho</span>}
+                    {st === "n" && <span className="chip warn">Ahora</span>}
+                  </div>
+                  {(!individual || mine) && s.description && <span className="small muted">{s.description}</span>}
+                  {reqs.length > 0 ? (
+                    <div>
+                      <span className="small" style={{ fontWeight: 700 }}>Requisito para entrar:</span>
+                      <div className="reqs">
+                        {reqs.map((r) => {
+                          const ok = r.is_met || st === "d";
+                          return (
+                            <span key={r.id} className={`req ${ok ? "ok" : "no"}`}>
+                              <Icon name={ok ? "check" : "lock"} size={13} /> {r.label ?? r.required_title}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <span className="small muted">Requisito para entrar: ninguno</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </section>
+    </>
+  );
+}
