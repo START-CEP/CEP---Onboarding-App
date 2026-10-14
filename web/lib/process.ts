@@ -107,7 +107,7 @@ export function reqSummary<R extends { id: string | null; label: string | null; 
   return { doneCount: done.length, doneText, pending: pendingChips };
 }
 
-function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Action {
+export function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Action {
   const act = hub.activities.find((a) => a.activity_id === r.required_activity_id);
   const title = act?.title ?? r.required_title ?? "";
   const short = shortTitle(title);
@@ -314,7 +314,7 @@ export function daysUntil(today: Date, when: Date) {
 }
 
 export type SessionInfo = {
-  title: string; key: string; staffName?: string; roleKey?: string; when: string | null; days: number | null;
+  title: string; key: string; stepId: string | null; activityId: string | null; staffName?: string; roleKey?: string; when: string | null; days: number | null;
   /** booked agendada · requested pedida · ready lista para agendar · blocked le faltan requisitos ·
    *  upcoming su paso aún no se abre · partner es la sesión individual del otro miembro · closing ya pasó y el equipo no la cerró */
   state: "booked" | "requested" | "ready" | "blocked" | "upcoming" | "partner" | "closing";
@@ -329,7 +329,7 @@ export function nextSessionInfo(hub: Hub): SessionInfo | null {
   const staff = staffFor(hub, step.responsible_role_id);
   const key = step.activity_key ?? "";
   const title = step.title ?? "";
-  const base = { title: key && !title.startsWith(key) ? `${key} · ${title}` : title, key, staffName: staff?.personName, roleKey: staff?.roleKey };
+  const base = { title: key && !title.startsWith(key) ? `${key} · ${title}` : title, key, stepId: step.step_id, activityId: step.activity_id, staffName: staff?.personName, roleKey: staff?.roleKey };
   const anchor = `/terapia#${key}`;
   const none = { when: null, days: null };
 

@@ -2,18 +2,18 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
-import { Reqs } from "@/components/reqs";
+import { InitialSteps, type InitialItem } from "@/components/initial-steps";
 import { sessionLabel } from "@/lib/activity-config";
-import { getHub, type Hub } from "@/lib/data/hub";
+import { getHub, type Hub, type RequirementRow } from "@/lib/data/hub";
 import { getStaff } from "@/lib/data/staff";
 import {
-  blocksOf, currentStep, firstName, fmtDay, fmtTime, nextSessionInfo, roleClass, staffFor, stepLabel,
-  lateActivities, stepRequirements, stepTarget, todayActions, trackLines, upcoming, weekGrid, weekOf, type SessionInfo,
+  actionForRequirement, currentStep, firstName, fmtDay, fmtTime, hrefFor, lateActivities, nextSessionInfo, reqSummary, roleClass,
+  stepRequirements, stepTarget, todayActions, trackLines, upcoming, weekGrid, type SessionInfo,
 } from "@/lib/process";
 
 export default function ProcessPage() {
   return (
-    <Suspense fallback={<div className="hero" style={{ minHeight: 320 }} aria-busy="true" />}>
+    <Suspense fallback={<div className="nowhero" style={{ minHeight: 320 }} aria-busy="true" />}>
       <Process />
     </Suspense>
   );
@@ -32,12 +32,15 @@ async function Process() {
   }
   const step = currentStep(hub);
   const actions = todayActions(hub);
-  const [first, ...rest] = actions;
+  const [first] = actions;
+  // Lo que ya está en la lista de arriba (requisitos y agendar la sesión) no se repite en «También puedes».
+  const heroStep = nextSessionInfo(hub)?.stepId;
+  const rest = actions.filter((a) => heroStep !== step?.step_id ? a !== first : a.icon === "chat");
   const { total, months, todayWeek } = weekGrid(hub);
 
   return (
     <>
-      <Hero hub={hub} name={firstName(me.name)} first={first} />
+      <Hero hub={hub} name={firstName(me.name)} />
       <section className="card">
         <div className="ch">
           <div>
@@ -50,6 +53,7 @@ async function Process() {
             <Link className="btn ghost sm" href="/proceso">Ver el proceso completo <Icon name="arrow" size={14} /></Link>
           </div>
         </div>
+        <InitialSteps items={initialItems(hub)} />
         <Gantt hub={hub} total={total} months={months} todayWeek={todayWeek} />
       </section>
       <div className="grid2e">
@@ -85,10 +89,6 @@ async function Process() {
   );
 }
 
-const COUNT_K: Record<SessionInfo["state"], string> = {
-  booked: "Su siguiente sesión", requested: "Solicitud enviada", ready: "Por agendar", blocked: "Por agendar",
-  upcoming: "Su siguiente sesión", partner: "Su siguiente sesión", closing: "Sesión por cerrar",
-};
 const COUNT_WHY: Record<SessionInfo["state"], string> = {
   booked: "", requested: "El equipo les confirmará la hora.", ready: "Ya pueden agendarla.",
   blocked: "Aún no pueden agendarla: les faltan requisitos.", upcoming: "Se abre cuando terminen el paso anterior.",
@@ -107,107 +107,184 @@ function StatusChip({ hub }: { hub: Hub }) {
   return <span className="chip ok"><Icon name="check" size={14} /> Van al día</span>;
 }
 
-function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType<typeof todayActions>[number] }) {
-  const step = currentStep(hub);
-  const reqs = step ? stepRequirements(hub, step.step_id) : [];
-  const unmet = reqs.filter((r) => !r.is_met).length;
-  const total = hub.steps.length;
-  const blocks = blocksOf(hub);
+const moduleNum = (label: string | null) => /^Módulo (\d+)/.exec(label ?? "")?.[1] ?? null;
+/** «Módulo 0», «Módulo 1», «Módulo 2» → «Módulos 0, 1 y 2». */
+function doneTitle(reqs: RequirementRow[]) {
+  const nums = reqs.map((r) => moduleNum(r.label ?? r.required_title));
+  if (nums.every(Boolean)) {
+    return nums.length === 1 ? `Módulo ${nums[0]}` : `Módulos ${nums.slice(0, -1).join(", ")} y ${nums.at(-1)}`;
+  }
+  return reqSummary(reqs).doneText;
+}
+
+/** Inicio: la próxima sesión a la izquierda y, a la derecha, lo que falta para entrar a ella. */
+function Hero({ hub, name }: { hub: Hub; name: string }) {
   const next = nextSessionInfo(hub);
+  const sesStep = next ? hub.steps.find((s) => s.step_id === next.stepId) ?? null : null;
+  const reqs = sesStep && next?.state !== "partner" ? stepRequirements(hub, sesStep.step_id) : [];
+  const met = reqs.filter((r) => r.is_met);
+  const target = sesStep ? stepTarget(hub, sesStep) : "";
+  const todo = reqs
+    .filter((r) => !r.is_met)
+    .map((r) => ({ r, a: actionForRequirement(hub, r, target), act: hub.activities.find((x) => x.activity_id === r.required_activity_id) }))
+    .sort((x, y) => Number(x.a.icon === "users") - Number(y.a.icon === "users"));
+  const reqIds = new Set(reqs.map((r) => r.required_activity_id));
+  const others = lateActivities(hub).filter((a) => !reqIds.has(a.activity_id) && a.activity_id !== next?.activityId);
+  const sesAct = next ? hub.activities.find((a) => a.activity_id === next.activityId) : undefined;
+  const who = next?.staffName ? firstName(next.staffName) : null;
+  const ext = (href: string) => (href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {});
+
+  // Sin sesiones por delante: lo que quede del proceso, en la misma lista.
+  const fallback = !next ? todayActions(hub) : [];
+  const step = currentStep(hub);
+
+  const mods = reqs.filter((r) => moduleNum(r.label ?? r.required_title) !== null);
+  const firstOpen = mods.find((r) => !r.is_met);
+
+  let whenB = "Sin fecha todavía";
+  let whenS = sesAct?.suggested_on ? `Sugerida: semana del ${fmtDay(sesAct.suggested_on)}` : next ? COUNT_WHY[next.state] : "";
+  if (next?.state === "booked" && next.when) {
+    whenB = `${fmtDay(next.when)} · ${fmtTime(next.when)}`;
+    whenS = next.days === 0 ? "Es hoy" : `Faltan ${next.days} ${next.days === 1 ? "día" : "días"}`;
+  } else if (next?.state === "requested") {
+    whenB = "Solicitud enviada";
+    whenS = COUNT_WHY.requested;
+  } else if (next?.state === "closing" && next.when) {
+    whenB = fmtDay(next.when);
+    whenS = COUNT_WHY.closing;
+  } else if (next?.state === "partner") {
+    whenB = "Sesión de tu pareja";
+    whenS = COUNT_WHY.partner;
+  }
 
   return (
-    <section className="hero">
-      <div className="ph">
-        <div>
-          <p className="eyebrow herok">Por dónde vamos hoy</p>
-          <div className="where">
-            <span>{step?.block_name ?? "Cierre"}</span>
-            <span>Semana {weekOf(hub, hub.today)}</span>
-          </div>
-          <h1>{step ? `${name}, están en el paso ${step.position} de ${total}.` : `${name}, terminaron su proceso.`}</h1>
-        </div>
-        <StatusChip hub={hub} />
-      </div>
-
-      {next && (
-        <div className={`countdown ${roleClass(next.roleKey)}`}>
-          <div className="num">
-            {next.days === null ? <Icon name="cal" size={30} /> : next.days === 0 ? "Hoy" : <>{next.days}<small>{next.days === 1 ? "día" : "días"}</small></>}
-          </div>
-          <div className="tx">
-            <span className="k">{next.days === null ? COUNT_K[next.state] : next.days === 0 ? "Su sesión es hoy" : "Faltan para su siguiente sesión"}</span>
-            <b>{next.title}{next.staffName ? ` · con ${firstName(next.staffName)}` : ""}</b>
-            <span className="why">{next.state === "booked" && next.when ? `${fmtDay(next.when)} · ${fmtTime(next.when)}` : COUNT_WHY[next.state]}</span>
-          </div>
-          <Link className="btn" href={next.cta.href} {...(next.cta.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>{next.cta.label} <Icon name="arrow" size={16} /></Link>
-        </div>
-      )}
-
-      {!step ? (
-        <p className="lead">Completaron su proceso. ¡Felicidades!</p>
-      ) : next && step.activity_type === "therapy_session" ? null : unmet > 0 ? (
-        <div className="nextup">
-          <Icon name="lock" size={22} />
-          <div>
-            <span className="k">Para su siguiente {step.activity_type === "therapy_session" ? "sesión" : "paso"}</span>
-            <b>Para entrar a {stepTarget(hub, step)} les {unmet === 1 ? "falta una cosa" : `faltan ${unmet} cosas`}.</b>
-          </div>
-        </div>
-      ) : (
-        <div className="nextup ok">
-          <Icon name="check" size={22} />
-          <div>
-            <span className="k">Van al día</span>
-            <b>Ya cumplen todo para {stepTarget(hub, step)}.</b>
-          </div>
-        </div>
-      )}
-
+    <section className="nowhero">
       <div>
-        <div className="path" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label={step ? `Paso ${step.position} de ${total}` : undefined}>
-          {hub.steps.map((s) => {
-            const staff = staffFor(hub, s.responsible_role_id);
-            const isSession = s.activity_type === "therapy_session";
-            const st = s.state === "completed" ? "d" : s.state === "current" ? "n" : "f";
-            return (
-              <Link key={s.step_id} href={`/proceso#paso-${s.position}`} className={`c ${st}${isSession ? ` ses ${roleClass(staff?.roleKey)}` : ""}`}
-                title={`Paso ${s.position} · ${isSession ? `${sessionLabel(hub.configs[s.activity_id ?? ""], s.participants)} · ` : ""}${s.title}${isSession && staff ? ` (${staff.personName})` : ""}`}>
-                {stepLabel(s)}
-                <small>{isSession ? firstName(staff?.personName ?? "") : `Paso ${s.position}`}</small>
-              </Link>
-            );
-          })}
-        </div>
-        <div className="blocks" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }}>
-          {blocks.map((b, i) => (
-            <span key={`${b.name}-${i}`} className={b.current ? "on" : ""} style={{ gridColumn: `span ${b.span}` }}>{b.name}</span>
-          ))}
-        </div>
-        <div className="herolegend">
-          <span className="muted small">Cada casilla es un paso. Las sesiones llevan el color de quien las da:</span>
-          {hub.staff.filter((s) => s.roleKey !== "coordinator").map((s) => (
-            <span key={s.careRoleId} className={`whochip ${roleClass(s.roleKey)}`}><i>{s.personName.charAt(0)}</i>{firstName(s.personName)}</span>
-          ))}
-        </div>
+        <p className="hello">Hola, {name}</p>
+        <h1>Esto es lo que importa ahora</h1>
       </div>
-
-      {first && (
-        <div className="mission">
-          <span className="k">Lo que puedes avanzar ahora</span>
-          <b>{first.title}</b>
-          <span className="why">{first.why}</span>
-          {step && <Reqs reqs={reqs} dark title={`Para ${stepTarget(hub, step)} es importante haber visto y completado:`} />}
-          <Link className="btn" href={first.href}>
-            {first.cta}{first.minutes ? ` · ${first.minutes} min` : ""} <Icon name="arrow" size={16} />
-          </Link>
+      {!next && !step ? (
+        <p className="lead">Completaron su proceso. ¡Felicidades!</p>
+      ) : (
+        <div className={`nh-grid${next ? "" : " one"}`}>
+          {next && sesStep && (
+            <article className={`nh-sess ${roleClass(next.roleKey)}`} aria-label="Próxima sesión">
+              <div className="top">Próxima sesión</div>
+              <div className="body">
+                <span className="num">{next.key}</span>
+                <h2>{sessionLabel(hub.configs[sesStep.activity_id ?? ""], sesStep.participants)}{who ? ` con ${who}` : ""}</h2>
+                {sesStep.title && <p className="t">{sesStep.title}</p>}
+                {mods.length > 0 && (
+                  <div className="mods" aria-label={`Módulos para entrar: ${mods.filter((r) => r.is_met).length} de ${mods.length} listos`}>
+                    {mods.map((r) => (
+                      <i key={r.id} className={r.is_met ? "" : r === firstOpen ? "p" : "f"}>
+                        M{moduleNum(r.label ?? r.required_title)}{r.is_met && <Icon name="check" size={11} />}
+                      </i>
+                    ))}
+                  </div>
+                )}
+                <div className="when">
+                  <b>{whenB}</b>
+                  <span>{whenS}</span>
+                  {(next.state === "booked" || next.state === "closing") && (
+                    <Link className="lnk" href={next.cta.href} {...ext(next.cta.href)}>{next.cta.label} <Icon name="arrow" size={14} /></Link>
+                  )}
+                </div>
+              </div>
+            </article>
+          )}
+          <div className="nh-check">
+            <p className="k">{next ? (reqs.length ? `Antes de la ${next.key} · ${met.length} de ${reqs.length} listos` : `Para la ${next.key}`) : "Lo que sigue"}</p>
+            <ul>
+              {met.length > 0 && (
+                <li className="ok">
+                  <span className="ic"><Icon name="check" size={16} /></span>
+                  <b>{doneTitle(met)}</b>
+                  <small>{met.every((r) => r.criterion === "task_submitted") ? "Vistos y con tarea entregada" : "Listo"}</small>
+                </li>
+              )}
+              {todo.map(({ r, a, act }, i) => (
+                <li key={r.id}>
+                  <span className="ic" />
+                  <b>{a.title}</b>
+                  <small>{a.icon === "users" ? a.why : [act?.task_pending ? "Ya vieron el video" : null, act?.estimated_minutes ? `${act.estimated_minutes} min` : null].filter(Boolean).join(" · ") || a.why}</small>
+                  <Link className={`act ${i === 0 ? "pri" : "sec"}`} href={a.href}>{a.cta === "Entregar tarea" ? "Hacer ahora" : a.cta}</Link>
+                </li>
+              ))}
+              {fallback.map((a, i) => (
+                <li key={a.title}>
+                  <span className="ic" />
+                  <b>{a.title}</b>
+                  <small>{a.why}</small>
+                  <Link className={`act ${i === 0 ? "pri" : "sec"}`} href={a.href}>{a.cta}</Link>
+                </li>
+              ))}
+              {next && next.state !== "partner" && (
+                next.state === "blocked" || next.state === "upcoming" ? (
+                  <li className="cal">
+                    <span className="ic"><Icon name="cal" size={24} /></span>
+                    <b>Agendar la {next.key}{who ? ` con ${who}` : ""}</b>
+                    <small>{next.state === "blocked" ? "Se habilita al completar lo de arriba" : COUNT_WHY.upcoming}</small>
+                  </li>
+                ) : next.state === "ready" ? (
+                  <li>
+                    <span className="ic go"><Icon name="cal" size={16} /></span>
+                    <b>Agendar la {next.key}{who ? ` con ${who}` : ""}</b>
+                    <small>Ya pueden agendarla</small>
+                    <Link className={`act ${todo.length ? "sec" : "pri"}`} href={next.cta.href}>Agendar</Link>
+                  </li>
+                ) : (
+                  <li className="ok">
+                    <span className="ic"><Icon name="check" size={16} /></span>
+                    <b>{next.state === "requested" ? `${next.key} solicitada` : `${next.key} agendada`}</b>
+                    <small>{next.state === "requested" ? COUNT_WHY.requested : whenB}</small>
+                    <Link className="act sec" href={next.cta.href} {...ext(next.cta.href)}>{next.cta.label}</Link>
+                  </li>
+                )
+              )}
+            </ul>
+            {others.length > 0 && (
+              <p className="foot">
+                También pendiente:{" "}
+                {others.slice(0, 2).map((a, i) => (
+                  <span key={a.activity_id}>{i > 0 ? " y " : ""}<Link href={hrefFor(hub, a.type ?? "checklist", a.activity_id)}>{lower(a.title)}</Link></span>
+                ))}
+                {others.length > 2 ? ` y ${others.length - 2} más` : ""}.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </section>
   );
 }
 
+const lower = (s: string | null) => (s ? s.charAt(0).toLowerCase() + s.slice(1) : "");
+
+/** Actividades de la pareja en el área de Inicio (contrato, radiografía, video de bienvenida…). */
+function initialItems(hub: Hub): InitialItem[] {
+  const partner = hub.members.find((m) => m.profileId !== hub.me.id);
+  return hub.activities
+    .filter((a) => a.track_key === "inicio" && a.type !== "staff_task")
+    .sort((a, b) => (a.suggested_on ?? "").localeCompare(b.suggested_on ?? "") || (a.position ?? 0) - (b.position ?? 0))
+    .map((a) => {
+      const checkable = a.type === "video_module" || a.type === "external_link" || a.type === "checklist";
+      const mine = checkable ? hub.mine.viewed.includes(a.activity_id ?? "") : hub.mine.submitted.includes(a.activity_id ?? "");
+      return {
+        id: a.activity_id ?? "",
+        title: a.title ?? "",
+        done: Boolean(a.is_completed),
+        waitingPartner: !a.is_completed && mine && partner ? firstName(partner.name) : null,
+        checkable,
+        href: hrefFor(hub, a.type ?? "checklist", a.activity_id),
+        cta: a.type === "contract" ? "Firmar" : a.type === "form" ? "Responder" : a.type === "video_module" ? "Ver" : "Abrir",
+      };
+    });
+}
+
 function Gantt({ hub, total, months, todayWeek }: { hub: Hub; total: number; months: { label: string; span: number }[]; todayWeek: number }) {
-  const lines = trackLines(hub, total);
+  // El área de Inicio va aparte, en el cuadro del proceso inicial.
+  const lines = trackLines(hub, total).filter((l) => l.key !== "inicio");
   const cols = { gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` };
   const today = { left: `calc(${((Math.min(todayWeek, total) - 0.5) / total) * 100}% - 1px)` };
   return (
