@@ -58,7 +58,8 @@ export function fmtTime(date: string | Date) {
 // ---------------------------------------------------------------- requisitos y "qué hacer hoy"
 export type Action = { title: string; why: string; icon: IconName; href: string; minutes?: number | null };
 
-function hrefFor(type: ActivityRow["type"]) {
+function hrefFor(hub: Hub, type: ActivityRow["type"], activityId?: string | null) {
+  if (activityId && hub.onboardingForms.includes(activityId)) return "/onboarding";
   switch (type) {
     case "video_module":
     case "homework":
@@ -87,7 +88,7 @@ function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Acti
   const title = act?.title ?? r.required_title ?? "";
   const short = shortTitle(title);
   const why = `${r.is_mandatory ? "Es obligatorio para" : "Lo necesitan para"} entrar a ${target}`;
-  const base = { why, href: hrefFor(r.required_type ?? act?.type ?? "checklist"), minutes: act?.estimated_minutes };
+  const base = { why, href: hrefFor(hub, r.required_type ?? act?.type ?? "checklist", r.required_activity_id), minutes: act?.estimated_minutes };
 
   // Requisito que cumple cada miembro: si yo ya hice mi parte, lo que falta es de mi pareja.
   const perMember = act?.participants === "each_member" || act?.response_scope === "individual";
@@ -138,7 +139,7 @@ export function todayActions(hub: Hub): Action[] {
         actions.push({ title: `Agendar su ${step.activity_key}${who ? ` con ${who}` : ""}`, why: step.description ?? "", icon: "cal", href: "/terapia" });
       } else {
         const act = hub.activities.find((a) => a.activity_id === step.activity_id);
-        actions.push({ title: step.title ?? "", why: step.description ?? "", icon: act?.type === "video_module" ? "play" : "route", href: hrefFor(act?.type ?? "checklist"), minutes: act?.estimated_minutes });
+        actions.push({ title: step.title ?? "", why: step.description ?? "", icon: act?.type === "video_module" ? "play" : "route", href: hrefFor(hub, act?.type ?? "checklist", act?.activity_id), minutes: act?.estimated_minutes });
       }
     }
   }
@@ -147,6 +148,12 @@ export function todayActions(hub: Hub): Action[] {
     actions.push({ title: "Dejar su pregunta para el coaching grupal", why: `Próximo coaching: ${fmtDay(next.scheduled_at)} · ${fmtTime(next.scheduled_at)}`, icon: "chat", href: "/coaching", minutes: 2 });
   }
   return actions;
+}
+
+/** Actividades de la pareja cuya fecha sugerida ya pasó y no están hechas (a la izquierda de la línea dorada). */
+export function lateActivities(hub: Hub) {
+  const today = hub.today.toISOString().slice(0, 10);
+  return hub.activities.filter((a) => a.type !== "staff_task" && !a.is_completed && Boolean(a.suggested_on) && a.suggested_on! < today);
 }
 
 export function nextGroupSession(hub: Hub) {
@@ -160,8 +167,9 @@ function startOfDay(d: Date) {
 }
 
 // ---------------------------------------------------------------- cuadro de las áreas (semanas)
-export type Marker = { col: number; label: string; state: "d" | "n" | "w" | "l"; title: string; roleClass?: string; dot?: boolean };
-export type TrackLine = { key: string; name: string; sub: string; chip: { tone: "ok" | "warn" | "info"; text: string; lock?: boolean }; markers: Marker[] };
+/** d hecho · n lo siguiente · w video visto, falta la tarea · x atrasado · l por venir */
+export type Marker = { col: number; label: string; state: "d" | "n" | "w" | "x" | "l"; title: string; roleClass?: string; dot?: boolean };
+export type TrackLine = { key: string; name: string; sub: string; chip: { tone: "ok" | "warn" | "crit" | "info"; text: string; lock?: boolean }; markers: Marker[] };
 
 export function weekGrid(hub: Hub) {
   const weeks = [
@@ -186,11 +194,14 @@ export function trackLines(hub: Hub, total: number): TrackLine[] {
   const step = currentStep(hub);
   const currentNeeds = new Set(stepRequirements(hub, step?.step_id).filter((r) => !r.is_met).map((r) => r.required_activity_id));
   const clamp = (w: number) => Math.min(Math.max(w, 1), total);
+  const todayKey = hub.today.toISOString().slice(0, 10);
+  // Atrasado: su fecha sugerida ya pasó (queda a la izquierda de la línea dorada) y no está hecho.
+  const late = (a: ActivityRow) => !a.is_completed && Boolean(a.suggested_on) && a.suggested_on! < todayKey;
 
   return hub.tracks.map((t) => {
     const acts = hub.activities.filter((a) => a.track_key === t.track_key && a.type !== "staff_task");
     const stateOf = (a: ActivityRow): Marker["state"] =>
-      a.is_completed ? "d" : a.task_pending ? "w" : a.activity_id === step?.activity_id || currentNeeds.has(a.activity_id) ? "n" : "l";
+      a.is_completed ? "d" : a.task_pending ? "w" : late(a) ? "x" : a.activity_id === step?.activity_id || currentNeeds.has(a.activity_id) ? "n" : "l";
 
     let markers: Marker[];
     const groupAct = acts.find((a) => a.type === "group_session");
@@ -227,7 +238,7 @@ export function trackLines(hub: Hub, total: number): TrackLine[] {
           col,
           label: done === list.length ? "Listo" : `${done}/${list.length}`,
           title: list.map((a) => a.title).join(" · "),
-          state: done === list.length ? "d" : states.includes("n") ? "n" : states.includes("w") ? "w" : "l",
+          state: done === list.length ? "d" : states.includes("x") ? "x" : states.includes("w") ? "w" : states.includes("n") ? "n" : "l",
         };
       });
     }
@@ -235,7 +246,10 @@ export function trackLines(hub: Hub, total: number): TrackLine[] {
     const pendingTasks = acts.filter((a) => a.task_pending).map((a) => a.key);
     const holdsCurrent = step && acts.some((a) => a.activity_id === step.activity_id) && (step.blocking_unmet ?? 0) > 0;
     const allDone = acts.length > 0 && acts.every((a) => a.is_completed);
-    const chip: TrackLine["chip"] = pendingTasks.length
+    const lateKeys = acts.filter((a) => late(a) && !a.task_pending).map((a) => a.key);
+    const chip: TrackLine["chip"] = lateKeys.length
+      ? { tone: "crit", text: `Atrasado: ${lateKeys.join(", ")}` }
+      : pendingTasks.length
       ? { tone: "warn", text: `Falta tarea ${pendingTasks.join(", ")}` }
       : holdsCurrent
         ? { tone: "warn", text: `${step!.activity_key}: requisito pendiente`, lock: true }

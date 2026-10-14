@@ -46,3 +46,11 @@ export async function signedContentUrl(path: string | null | undefined, download
   const { data } = await supabase.storage.from("content").createSignedUrl(path, 60 * 60, download ? { download } : undefined);
   return data?.signedUrl ?? null;
 }
+
+/** URL firmada de la foto de perfil (bucket privado "avatars"). */
+export async function avatarUrl(path: string | null | undefined) {
+  if (!path) return null;
+  const supabase = await createClient();
+  const { data } = await supabase.storage.from("avatars").createSignedUrl(path, 60 * 60);
+  return data?.signedUrl ?? null;
+}

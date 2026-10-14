@@ -4,7 +4,7 @@ import { Icon } from "@/components/icon";
 import { getHub } from "@/lib/data/hub";
 import { firstName, roleClass, staffFor, stepRequirements } from "@/lib/process";
 
-export const metadata: Metadata = { title: "Los pasos · CEP" };
+export const metadata: Metadata = { title: "El proceso · CEP" };
 
 export default function StepsPage() {
   return (
@@ -24,7 +24,7 @@ async function Steps() {
     <>
       <div className="ph">
         <div>
-          <p className="eyebrow">El camino completo</p>
+          <p className="eyebrow">El proceso · el camino completo</p>
           <h1>Los {hub.steps.length} pasos de su proceso</h1>
           <p className="lead">Cada paso tiene un responsable y un requisito para entrar. El avance clínico lo marca su terapeuta en sesión, no el módulo visto.</p>
         </div>

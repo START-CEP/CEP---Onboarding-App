@@ -32,7 +32,7 @@ export function ResetForm() {
     <form action={action}>
       <div>
         <h2>Recupera tu acceso</h2>
-        <p className="muted small" style={{ marginTop: 6 }}>Te enviamos un enlace para crear una contraseña nueva.</p>
+        <p className="muted small" style={{ marginTop: 6 }}>Escribe el correo con el que entras y te enviamos un enlace para crear una contraseña nueva.</p>
       </div>
       <div className="field">
         <label htmlFor="email">Correo</label>
@@ -41,7 +41,7 @@ export function ResetForm() {
       {state.error && <p className="formerr" role="alert">{state.error}</p>}
       {state.ok && <p className="chip ok" role="status" style={{ whiteSpace: "normal" }}>{state.ok}</p>}
       <button className="btn" type="submit" disabled={pending} style={{ justifyContent: "center" }}>{pending ? "Enviando…" : "Enviar enlace"}</button>
-      <p className="small"><a href="/login" style={{ textDecoration: "underline" }}>Volver a entrar</a></p>
+      <p className="small"><a className="link" href="/login">Volver a entrar</a></p>
     </form>
   );
 }

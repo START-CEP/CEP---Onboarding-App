@@ -5,9 +5,10 @@ import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "@/components/icon";
 
 export const NAV: { href: string; label: string; short: string; icon: IconName }[] = [
-  { href: "/", label: "El proceso", short: "Proceso", icon: "home" },
-  { href: "/pasos", label: "Los pasos", short: "Pasos", icon: "route" },
-  { href: "/bienvenida", label: "Bienvenida", short: "Inicio", icon: "play" },
+  { href: "/", label: "Inicio", short: "Inicio", icon: "home" },
+  { href: "/pasos", label: "El proceso", short: "Proceso", icon: "route" },
+  { href: "/onboarding", label: "Onboarding", short: "Onboarding", icon: "user" },
+  { href: "/bienvenida", label: "Bienvenida", short: "Bienvenida", icon: "play" },
   { href: "/contrato", label: "Contrato", short: "Contrato", icon: "pen" },
   { href: "/radiografia", label: "Radiografía Inicial", short: "Radiografía", icon: "pulse" },
   { href: "/modulos", label: "Módulos", short: "Módulos", icon: "book" },
@@ -52,5 +53,5 @@ export function BottomNav() {
 export function Crumb() {
   const pathname = usePathname();
   const item = NAV.find((n) => isActive(pathname, n.href));
-  return <b>{item?.label ?? ""}</b>;
+  return <b>{pathname.startsWith("/perfil") ? "Tu perfil" : item?.label ?? ""}</b>;
 }

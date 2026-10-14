@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
@@ -17,8 +18,8 @@ async function Shell({ children }: { children: React.ReactNode }) {
     <div className="app">
       <aside className="side">
         <div className="brand">
-          <span className="mark">C</span>
-          <div>CEP<small>Panel del equipo</small></div>
+          <Image className="iso" src="/brand/isotipo.png" alt="" width={250} height={300} priority />
+          <div className="bname">Creciendo en pareja<small>Panel del equipo</small></div>
         </div>
         <StaffNav admin={staff.isAdmin} sales={staff.canSell} />
         <div className="spacer" />

@@ -9,9 +9,9 @@ export function LoginForm() {
   return (
     <form action={action}>
       <div>
-        <h2>Entra a tu espacio</h2>
+        <h2>Hola de nuevo</h2>
         <p className="muted small" style={{ marginTop: 6 }}>
-          Tu pareja tiene su propio acceso. Lo que escribes en tus tareas individuales lo ve solo el equipo.
+          Entra con tu correo y tu contraseña. Tu pareja tiene su propio acceso, y lo que escribes en tus tareas individuales lo ve solo el equipo.
         </p>
       </div>
       <div className="field">
@@ -27,7 +27,8 @@ export function LoginForm() {
       <button className="btn" type="submit" style={{ justifyContent: "center" }} disabled={pending}>
         {pending ? "Entrando…" : "Entrar"} <Icon name="arrow" size={16} />
       </button>
-      <p className="small muted">¿Primera vez? Usa el enlace que te enviamos por email. <a href="/recuperar" style={{ textDecoration: "underline" }}>¿Olvidaste tu contraseña?</a></p>
+      <a className="btn ghost" href="/recuperar" style={{ justifyContent: "center" }}>¿Olvidaste tu contraseña?</a>
+      <p className="small muted">¿Es tu primera vez? Usa el enlace de invitación que te enviamos por correo para crear tu contraseña.</p>
     </form>
   );
 }

@@ -1,9 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { Icon } from "@/components/icon";
 import { BottomNav, Crumb, SideNav } from "@/components/nav";
 import { getHub } from "@/lib/data/hub";
+import { avatarUrl } from "@/lib/data/extra";
 import { firstName } from "@/lib/process";
 import { signOut } from "../login/actions";
 
@@ -14,20 +16,25 @@ async function TopUser() {
   const total = hub?.steps.length ?? 0;
   const current = hub?.enrollment.current_step_position;
   const supabase = await createClient();
-  const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("profile_id", me.id).is("read_at", null);
+  const [{ count }, { data: profile }] = await Promise.all([
+    supabase.from("notifications").select("id", { count: "exact", head: true }).eq("profile_id", me.id).is("read_at", null),
+    supabase.from("profiles").select("avatar_path").eq("id", me.id).maybeSingle(),
+  ]);
+  const photo = await avatarUrl(profile?.avatar_path);
   return (
     <>
       <Link className="iconbtn" href="/avisos" aria-label={count ? `Avisos: ${count} sin leer` : "Avisos"}>
         <Icon name="bell" />{count ? <span className="dot" /> : null}
       </Link>
       {hub && current && <span className="chip info"><Icon name="route" size={14} /> Paso {current} de {total}</span>}
-      <div className="who">
-        <span className="av">{firstName(me.name).charAt(0) || "·"}</span>
+      <Link className="who" href="/perfil" aria-label="Tu perfil" title="Tu perfil">
+        {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada de Storage, cambia en cada petición */}
+        <span className="av">{photo ? <img src={photo} alt="" /> : firstName(me.name).charAt(0) || "·"}</span>
         <div>
           <b>{me.name}</b>
-          {partner && <span>Con {firstName(partner.name)}</span>}
+          <span>{partner ? `Con ${firstName(partner.name)} · ` : ""}Ver perfil</span>
         </div>
-      </div>
+      </Link>
     </>
   );
 }
@@ -42,8 +49,8 @@ export default function HubLayout({ children }: LayoutProps<"/">) {
     <div className="app">
       <aside className="side">
         <div className="brand">
-          <span className="mark">C</span>
-          <div>CEP<small>Su ruta de pareja</small></div>
+          <Image className="iso" src="/brand/isotipo.png" alt="" width={250} height={300} priority />
+          <div className="bname">Creciendo en pareja<small>Su ruta de pareja</small></div>
         </div>
         <div className="navlabel">Menú</div>
         <Suspense>

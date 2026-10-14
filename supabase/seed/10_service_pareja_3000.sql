@@ -1,5 +1,5 @@
 -- Plantilla: Proceso de pareja $3.000 (documento "Camino 1 · Arquitectura por pasos", Emilia, 14 oct 2026).
--- 14 pasos · 10 sesiones (Emilia S1/S5/S8, psicóloga S2/S3/S6/S7/S9/S10, Diego S4) · 9 módulos (0–8).
+-- 14 pasos (el 1 es el formulario de onboarding) · 10 sesiones (Emilia S1/S5/S8, psicóloga S2/S3/S6/S7/S9/S10, Diego S4) · 9 módulos (0–8).
 -- Es solo datos: el mismo motor sirve para cualquier otro servicio.
 
 do $$
@@ -12,7 +12,7 @@ declare
   r_coord uuid := (select id from public.care_roles where key = 'coordinator');
   b uuid[];          -- bloques
   t_ini uuid; t_mod uuid; t_ter uuid; t_cg uuid;
-  f_rad_ind uuid; f_rad_par uuid; f_task uuid;
+  f_onb uuid; f_rad_ind uuid; f_rad_par uuid; f_task uuid;
   c_tpl uuid;
   a_welcome uuid;
   i int;
@@ -68,6 +68,29 @@ begin
     (v_version, 'coaching', 'Coaching Grupal', 4) returning id into t_cg;
 
   -- Formularios
+  insert into public.forms (key, name, kind) values ('onboarding_pareja', 'Formulario de onboarding', 'profile')
+    on conflict (key) do nothing;
+  insert into public.form_versions (form_id, version, schema, published_at)
+  select id, 1, '{
+    "sections": [
+      {"key": "sobre_ti", "title": "Sobre ti", "scope": "individual", "questions": [
+        {"key": "nombre_preferido", "type": "text", "label": "¿Cómo prefieres que te llamemos?"},
+        {"key": "whatsapp", "type": "text", "label": "Tu WhatsApp (con código de país)"},
+        {"key": "pais", "type": "text", "label": "¿Desde qué país y ciudad te conectas?"}]},
+      {"key": "como_llegan", "title": "Cómo llegaste", "scope": "individual", "questions": [
+        {"key": "como_conociste", "type": "single_choice", "label": "¿Cómo conociste Creciendo en Pareja?",
+         "options": ["Instagram", "YouTube", "Recomendación", "Google", "Otro"]},
+        {"key": "por_que_ahora", "type": "textarea", "label": "¿Qué te hizo decidir empezar el proceso ahora?"}]},
+      {"key": "expectativas", "title": "Lo que esperas", "scope": "individual", "questions": [
+        {"key": "que_esperas", "type": "textarea", "label": "¿Qué esperas que cambie al terminar el proceso?"},
+        {"key": "dudas", "type": "textarea", "label": "¿Hay algo del proceso que te preocupe o te genere dudas?"},
+        {"key": "compromiso", "type": "scale", "label": "¿Qué tan comprometido o comprometida te sientes hoy con el proceso?", "min": 1, "max": 10}]},
+      {"key": "logistica", "title": "Tus horarios", "scope": "individual", "questions": [
+        {"key": "horarios", "type": "multi_choice", "label": "¿En qué horarios te queda mejor tener las sesiones?",
+         "options": ["Mañanas", "Mediodía", "Tardes", "Noches", "Fines de semana"]}]}
+    ]}'::jsonb, now()
+  from public.forms where key = 'onboarding_pareja'
+  returning id into f_onb;
   insert into public.forms (key, name, kind) values ('radiografia_individual', 'Radiografía Inicial · individual', 'intake')
     on conflict (key) do nothing;
   insert into public.forms (key, name, kind) values ('radiografia_pareja', 'Radiografía Inicial · en pareja', 'intake')
@@ -121,6 +144,10 @@ begin
                    {"key":"whatsapp","label":"Crear grupo de WhatsApp","due_days":1},
                    {"key":"perfil","label":"Completar perfil","due_days":2},
                    {"key":"cuestionarios","label":"Enviar cuestionarios","due_days":2}]}');
+
+  insert into public.service_activities (version_id, track_id, key, type, title, summary, participants, response_scope, form_version_id, position, suggested_offset_days, estimated_minutes)
+  values (v_version, t_ini, 'ONB_FORM', 'form', 'Formulario de onboarding', 'Cada uno lo responde por su cuenta; nos ayuda a preparar su proceso',
+          'each_member', 'individual', f_onb, 0, 0, 10);
 
   insert into public.service_activities (version_id, track_id, key, type, title, summary, participants, response_scope, contract_template_id, position, suggested_offset_days)
   values (v_version, t_ini, 'CON', 'contract', 'Firmar el contrato', 'Qué firman y por qué, en cinco puntos', 'each_member', 'individual', c_tpl, 3, 0);
@@ -181,7 +208,7 @@ begin
   select v_version, b[x.blk], x.pos, x.title, x.descr,
          (select id from public.service_activities where version_id = v_version and key = x.akey)
   from (values
-    (1, 1, 'Entrevista', 'Entrevista de claridad y cierre', 'ENT'),
+    (1, 1, 'Formulario de onboarding', 'Cuéntennos de ustedes antes de empezar', 'ONB_FORM'),
     (2, 1, 'Onboarding', 'Contrato · accesos · grupo de WhatsApp · perfil · cuestionarios', 'ONB'),
     (3, 1, 'Bienvenida', 'Video que explica el proceso + Cuestionario de Radiografía Inicial', 'WEL'),
     (4, 1, 'Módulo 0', 'Responsabilidad y validación emocional', 'M0')
@@ -201,6 +228,7 @@ begin
          x.crit::public.req_criterion, true, 'blocks', x.label
   from (values
     (2,  'ENT',     'completed',      'Compra confirmada'),
+    (2,  'ONB_FORM', 'form_submitted', 'Formulario de onboarding'),
     (3,  'ONB',     'completed',      'Onboarding completo'),
     (5,  'RAD_IND', 'form_submitted', 'Radiografía Inicial (individual)'),
     (5,  'RAD_PAR', 'form_submitted', 'Radiografía Inicial (en pareja)'),

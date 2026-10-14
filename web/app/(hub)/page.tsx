@@ -6,7 +6,7 @@ import { getHub, type Hub } from "@/lib/data/hub";
 import { getStaff } from "@/lib/data/staff";
 import {
   blocksOf, currentStep, firstName, fmtDay, fmtTime, nextGroupSession, roleClass, staffFor, stepLabel,
-  stepRequirements, stepTarget, todayActions, trackLines, weekGrid, weekOf,
+  lateActivities, stepRequirements, stepTarget, todayActions, trackLines, weekGrid, weekOf,
 } from "@/lib/process";
 
 export default function ProcessPage() {
@@ -39,18 +39,22 @@ async function Process() {
       <section className="card">
         <div className="ch">
           <div>
-            <h2>Las áreas de su proceso</h2>
-            <p className="muted small">Avanzan a la vez. La línea dorada es hoy: lo que está a su izquierda ya debería estar hecho.</p>
+            <p className="eyebrow">El proceso</p>
+            <h2>Resumen de su proceso</h2>
+            <p className="muted small">Estas son las áreas de su proceso. Avanzan a la vez. La línea dorada es hoy: lo que está a su izquierda ya debería estar hecho.</p>
           </div>
-          <StatusChip hub={hub} />
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <StatusChip hub={hub} />
+            <Link className="btn ghost sm" href="/pasos">Ver el proceso completo <Icon name="arrow" size={14} /></Link>
+          </div>
         </div>
         <Gantt hub={hub} total={total} months={months} todayWeek={todayWeek} />
       </section>
       <div className="grid2e">
         <section className="card">
-          <h2 style={{ marginBottom: 14 }}>También pueden</h2>
+          <h2 style={{ marginBottom: 14 }}>También puedes</h2>
           {rest.length === 0 ? (
-            <p className="muted">Por ahora, nada más. ¡Van al día!</p>
+            <p className="muted">Por ahora, nada más. ¡Vas al día!</p>
           ) : (
             <div className="list">
               {rest.map((a) => (
@@ -70,7 +74,7 @@ async function Process() {
       </div>
       {first && (
         <div className="pager">
-          <span className="lab">Su siguiente paso</span>
+          <span className="lab">Tu siguiente paso</span>
           <Link className="btn" href={first.href}>{first.title} <Icon name="arrow" /></Link>
         </div>
       )}
@@ -80,6 +84,10 @@ async function Process() {
 }
 
 function StatusChip({ hub }: { hub: Hub }) {
+  const late = lateActivities(hub).length;
+  if (late > 0) {
+    return <span className="chip crit"><Icon name="clock" size={14} /> {late === 1 ? "1 cosa atrasada" : `${late} cosas atrasadas`}</span>;
+  }
   const left = hub.enrollment.days_left;
   if (left !== null && left <= 21) {
     return <span className="chip warn"><Icon name="clock" size={14} /> Quedan {left} días</span>;
@@ -93,31 +101,50 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
   const unmet = reqs.filter((r) => !r.is_met).length;
   const total = hub.steps.length;
   const blocks = blocksOf(hub);
-  const lead = !step
-    ? "Completaron su proceso. ¡Felicidades!"
-    : unmet > 0
-      ? `Para entrar a ${stepTarget(hub, step)} les ${unmet === 1 ? "falta una cosa" : `faltan ${unmet} cosas`}.`
-      : "Van al día. Este es su siguiente paso.";
 
   return (
     <section className="hero">
       <div className="ph">
         <div>
-          <p className="eyebrow">{step?.block_name ?? "Cierre"} · Semana {weekOf(hub, hub.today)}</p>
+          <p className="eyebrow herok">Por dónde vamos hoy</p>
+          <div className="where">
+            <span>{step?.block_name ?? "Cierre"}</span>
+            <span>Semana {weekOf(hub, hub.today)}</span>
+          </div>
           <h1>{step ? `${name}, están en el paso ${step.position} de ${total}.` : `${name}, terminaron su proceso.`}</h1>
-          <p className="lead">{lead}</p>
         </div>
         <StatusChip hub={hub} />
       </div>
+
+      {!step ? (
+        <p className="lead">Completaron su proceso. ¡Felicidades!</p>
+      ) : unmet > 0 ? (
+        <div className="nextup">
+          <Icon name="lock" size={22} />
+          <div>
+            <span className="k">Para su siguiente {step.activity_type === "therapy_session" ? "sesión" : "paso"}</span>
+            <b>Para entrar a {stepTarget(hub, step)} les {unmet === 1 ? "falta una cosa" : `faltan ${unmet} cosas`}.</b>
+          </div>
+        </div>
+      ) : (
+        <div className="nextup ok">
+          <Icon name="check" size={22} />
+          <div>
+            <span className="k">Van al día</span>
+            <b>Ya cumplen todo para {stepTarget(hub, step)}.</b>
+          </div>
+        </div>
+      )}
 
       <div>
         <div className="path" style={{ gridTemplateColumns: `repeat(${total}, minmax(0, 1fr))` }} aria-label={step ? `Paso ${step.position} de ${total}` : undefined}>
           {hub.steps.map((s) => {
             const staff = staffFor(hub, s.responsible_role_id);
             const isSession = s.activity_type === "therapy_session";
+            const st = s.state === "completed" ? "d" : s.state === "current" ? "n" : "f";
             return (
-              <div key={s.step_id} className={`c ${s.state === "completed" ? "d" : s.state === "current" ? "n" : "f"}`} title={`Paso ${s.position} · ${s.title}`}>
-                {isSession && <span className={`wdot ${roleClass(staff?.roleKey)}`} />}
+              <div key={s.step_id} className={`c ${st}${isSession ? ` ses ${roleClass(staff?.roleKey)}` : ""}`}
+                title={`Paso ${s.position} · ${s.title}${isSession && staff ? ` · con ${staff.personName}` : ""}`}>
                 {stepLabel(s)}
                 <small>{isSession ? firstName(staff?.personName ?? "") : `Paso ${s.position}`}</small>
               </div>
@@ -129,14 +156,17 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
             <span key={`${b.name}-${i}`} className={b.current ? "on" : ""} style={{ gridColumn: `span ${b.span}` }}>{b.name}</span>
           ))}
         </div>
-        <p className="muted small" style={{ marginTop: 10 }}>
-          Cada casilla es un paso. Para entrar a cada paso hay un requisito. El punto de color indica con quién es la sesión.
-        </p>
+        <div className="herolegend">
+          <span className="muted small">Cada casilla es un paso. Las sesiones llevan el color de quien las da:</span>
+          {hub.staff.filter((s) => s.roleKey !== "coordinator").map((s) => (
+            <span key={s.careRoleId} className={`whochip ${roleClass(s.roleKey)}`}><i>{s.personName.charAt(0)}</i>{firstName(s.personName)}</span>
+          ))}
+        </div>
       </div>
 
       {first && (
         <div className="mission">
-          <span className="k">La página de hoy</span>
+          <span className="k">Lo que puedes avanzar ahora</span>
           <b>{first.title}</b>
           <span className="why">{first.why}</span>
           {step && reqs.length > 0 && (
@@ -181,7 +211,9 @@ function Gantt({ hub, total, months, todayWeek }: { hub: Hub; total: number; mon
         <span><i style={{ background: "var(--accent)" }} />Hecho</span>
         <span><i style={{ background: "var(--hi)", borderColor: "var(--hi)" }} />Lo siguiente</span>
         <span><i style={{ background: "var(--warn-soft)", borderColor: "var(--warn)" }} />Video visto, falta la tarea</span>
+        <span><i style={{ background: "var(--crit-soft)", borderColor: "var(--crit)" }} />Pendiente o atrasado</span>
         <span><i style={{ borderStyle: "dashed", borderColor: "var(--muted)" }} />Por venir</span>
+        <span className="legsep">Sesiones con:</span>
         {hub.staff.filter((s) => s.roleKey !== "coordinator").map((s) => (
           <span key={s.careRoleId}><i className={`w ${roleClass(s.roleKey)}`} />{firstName(s.personName)}</span>
         ))}
@@ -203,9 +235,9 @@ function TrackRow({ line, cols, today }: { line: ReturnType<typeof trackLines>[n
       <div className="gtrack" style={cols}>
         <span className="t" style={today} />
         {line.markers.map((m, i) => (
-          <span key={i} className={`gm ${m.dot ? "dot " : ""}${m.state}${m.roleClass ? ` ${m.roleClass}` : ""}`} style={{ gridColumn: m.col }} title={m.title}>
+          <span key={i} className={`gm ${m.dot ? "dot " : ""}${m.state}${m.roleClass ? ` ses ${m.roleClass}` : ""}`} style={{ gridColumn: m.col }}
+            title={m.state === "x" ? `${m.title} · atrasado` : m.title}>
             {m.label}
-            {m.roleClass && <span className="wdot" />}
           </span>
         ))}
       </div>
