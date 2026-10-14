@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { getHub } from "@/lib/data/hub";
-import { firstName, roleClass, staffFor, stepRequirements } from "@/lib/process";
+import { firstName, roleClass, staffFor, stepRequirements, stepTone } from "@/lib/process";
 
 export const metadata: Metadata = { title: "El proceso · CEP" };
 
@@ -24,16 +24,22 @@ async function Steps() {
     <>
       <div className="ph">
         <div>
-          <p className="eyebrow">El proceso · el camino completo</p>
-          <h1>Los {hub.steps.length} pasos de su proceso</h1>
+          <p className="eyebrow">El proceso</p>
+          <h1>El camino completo: los {hub.steps.length} pasos de su proceso</h1>
           <p className="lead">Cada paso tiene un responsable y un requisito para entrar. El avance clínico lo marca su terapeuta en sesión, no el módulo visto.</p>
         </div>
         <span className="chip info">{done} de {hub.steps.length} completados</span>
       </div>
       <section className="card">
+        <div className="legend" style={{ marginBottom: 16 }}>
+          <span><i style={{ background: "var(--go)", borderColor: "var(--go)" }} />Hecho</span>
+          <span><i style={{ background: "var(--warn)", borderColor: "var(--warn)" }} />Sigue</span>
+          <span><i style={{ background: "var(--crit)", borderColor: "var(--crit)" }} />Atrasado</span>
+          <span><i style={{ borderStyle: "dashed", borderColor: "var(--muted)" }} />Por venir</span>
+        </div>
         {hub.steps.map((s, i) => {
           const head = s.block_name !== hub.steps[i - 1]?.block_name ? <div className="blockhead">{s.block_name}</div> : null;
-          const st = s.state === "completed" ? "d" : s.state === "current" ? "n" : "";
+          const tone = stepTone(hub, s);
           const staff = staffFor(hub, s.responsible_role_id);
           const reqs = stepRequirements(hub, s.step_id);
           const individual = s.participants === "member_1" || s.participants === "member_2";
@@ -42,8 +48,8 @@ async function Steps() {
           return (
             <div key={s.step_id}>
               {head}
-              <div className={`vstep ${st}`}>
-                <span className="dotn">{st === "d" ? <Icon name="check" size={16} /> : s.position}</span>
+              <div className={`vstep ${tone}`}>
+                <span className="dotn">{tone === "d" ? <Icon name="check" size={16} /> : tone === "x" ? "!" : s.position}</span>
                 <div className="body">
                   <div className="top3">
                     <b>{s.title}</b>
@@ -53,8 +59,9 @@ async function Steps() {
                     {individual && (mine
                       ? <span className="chip pair"><Icon name="user" size={12} /> Tu sesión individual</span>
                       : <span className="chip">Sesión individual de {firstName(owner?.name ?? "")}</span>)}
-                    {st === "d" && <span className="chip ok">Hecho</span>}
-                    {st === "n" && <span className="chip warn">Ahora</span>}
+                    {tone === "d" && <span className="chip go">Hecho</span>}
+                    {tone === "n" && <span className="chip warn">Sigue</span>}
+                    {tone === "x" && <span className="chip crit">Atrasado</span>}
                   </div>
                   {(!individual || mine) && s.description && <span className="small muted">{s.description}</span>}
                   {reqs.length > 0 ? (
@@ -62,7 +69,7 @@ async function Steps() {
                       <span className="small" style={{ fontWeight: 700 }}>Requisito para entrar:</span>
                       <div className="reqs">
                         {reqs.map((r) => {
-                          const ok = r.is_met || st === "d";
+                          const ok = r.is_met || tone === "d";
                           return (
                             <span key={r.id} className={`req ${ok ? "ok" : "no"}`}>
                               <Icon name={ok ? "check" : "lock"} size={13} /> {r.label ?? r.required_title}

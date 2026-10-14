@@ -36,6 +36,9 @@ const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: { root: path.join(__dirname) },
+  async redirects() {
+    return [{ source: "/pasos", destination: "/proceso", permanent: true }];
+  },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },

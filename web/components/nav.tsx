@@ -6,7 +6,7 @@ import { Icon, type IconName } from "@/components/icon";
 
 export const NAV: { href: string; label: string; short: string; icon: IconName }[] = [
   { href: "/", label: "Inicio", short: "Inicio", icon: "home" },
-  { href: "/pasos", label: "El proceso", short: "Proceso", icon: "route" },
+  { href: "/proceso", label: "El proceso", short: "Proceso", icon: "route" },
   { href: "/onboarding", label: "Onboarding", short: "Onboarding", icon: "user" },
   { href: "/bienvenida", label: "Bienvenida", short: "Bienvenida", icon: "play" },
   { href: "/contrato", label: "Contrato", short: "Contrato", icon: "pen" },
@@ -16,7 +16,7 @@ export const NAV: { href: string; label: string; short: string; icon: IconName }
   { href: "/coaching", label: "Coaching Grupal", short: "Coaching", icon: "users" },
 ];
 
-const MOBILE = ["/", "/pasos", "/modulos", "/terapia", "/coaching"];
+const MOBILE = ["/", "/proceso", "/modulos", "/terapia", "/coaching"];
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
