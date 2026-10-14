@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
+import { TaskDone } from "@/components/task-done";
 import { getStaff, listEnrollments } from "@/lib/data/staff";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDay, fmtTime } from "@/lib/process";
@@ -20,7 +21,7 @@ async function Team() {
   const list = await listEnrollments();
   const ids = list.map((e) => e.id);
 
-  const [{ data: requests }, { data: tasks }, { data: questions }] = await Promise.all([
+  const [{ data: requests }, { data: tasks }, { data: questions }, { data: followups }] = await Promise.all([
     supabase.from("enrollment_sessions")
       .select("id, enrollment_id, scheduled_at, enrollment_activities(key, title)")
       .eq("status", "requested").in("enrollment_id", ids).order("scheduled_at"),
@@ -28,6 +29,7 @@ async function Team() {
       .select("id, item_key, due_on, enrollment_activities!inner(enrollment_id, title, config)")
       .is("done_at", null).order("due_on"),
     supabase.from("group_session_questions").select("id", { count: "exact" }).eq("status", "new"),
+    supabase.from("staff_tasks").select("id, enrollment_id, title, description, due_on, assignee_id, profiles(full_name)").eq("status", "open").order("due_on"),
   ]);
   const unitOf = (enrollmentId: string) => list.find((e) => e.id === enrollmentId)?.unitName ?? "";
   const label = (config: unknown, key: string) =>
@@ -82,6 +84,25 @@ async function Team() {
           )}
         </section>
       </div>
+
+      {(followups ?? []).length > 0 && (
+        <section className="card">
+          <div className="ch"><h2>Seguimiento</h2><span className="chip warn">{followups!.length}</span></div>
+          <div className="list">
+            {followups!.map((t) => (
+              <div className="li" key={t.id}>
+                <span className="ico warn"><Icon name="bell" /></span>
+                <div className="tx">
+                  <b>{t.title}</b>
+                  <span>{t.description}{t.profiles?.full_name ? ` · ${t.profiles.full_name}` : ""}{t.due_on ? ` · ${fmtDay(t.due_on)}` : ""}</span>
+                </div>
+                {t.enrollment_id && <Link className="btn ghost sm" href={`/equipo/parejas/${t.enrollment_id}`}>Abrir</Link>}
+                <TaskDone id={t.id} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="card">
         <div className="ch"><h2>Procesos</h2></div>

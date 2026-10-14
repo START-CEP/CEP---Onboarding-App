@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { Suspense } from "react";
+import { createClient } from "@/lib/supabase/server";
 import { Icon } from "@/components/icon";
 import { BottomNav, Crumb, SideNav } from "@/components/nav";
 import { getHub } from "@/lib/data/hub";
@@ -11,8 +13,13 @@ async function TopUser() {
   const partner = hub?.members.find((m) => m.profileId !== me.id);
   const total = hub?.steps.length ?? 0;
   const current = hub?.enrollment.current_step_position;
+  const supabase = await createClient();
+  const { count } = await supabase.from("notifications").select("id", { count: "exact", head: true }).eq("profile_id", me.id).is("read_at", null);
   return (
     <>
+      <Link className="iconbtn" href="/avisos" aria-label={count ? `Avisos: ${count} sin leer` : "Avisos"}>
+        <Icon name="bell" />{count ? <span className="dot" /> : null}
+      </Link>
       {hub && current && <span className="chip info"><Icon name="route" size={14} /> Paso {current} de {total}</span>}
       <div className="who">
         <span className="av">{firstName(me.name).charAt(0) || "·"}</span>

@@ -81,6 +81,9 @@ Funciones: `enroll_unit`, `publish_service_version` (valida responsables, formul
 | `…12_publish_and_clone.sql` | publicar y clonar |
 | `…13_bunny_video.sql` | videos en Bunny Stream |
 | `…14` · `…15` · `…16_authz_hardening*.sql` | endurecimiento de permisos (revisiones de seguridad) |
+| `…17_files_select_own.sql` | registro de archivos subidos |
+| `…18_followups.sql` | seguimiento diario automático (pg_cron): tareas para el equipo y avisos para la pareja |
+| `…19_enroll_staff_check.sql` | enroll_unit valida el equipo asignado y procesos activos |
 | `supabase/seed/*.sql` | usuarios, 3 servicios, pareja en el paso 9 |
 | `supabase/tests/*.test.sql` | tests pgTAP |
 | `web/lib/database.types.ts` | tipos para la app |

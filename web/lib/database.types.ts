@@ -1520,6 +1520,7 @@ export type Database = {
         Row: {
           body: string | null
           created_at: string
+          dedupe_key: string | null
           enrollment_id: string | null
           id: string
           link: string | null
@@ -1530,6 +1531,7 @@ export type Database = {
         Insert: {
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           enrollment_id?: string | null
           id?: string
           link?: string | null
@@ -1540,6 +1542,7 @@ export type Database = {
         Update: {
           body?: string | null
           created_at?: string
+          dedupe_key?: string | null
           enrollment_id?: string | null
           id?: string
           link?: string | null
@@ -2639,6 +2642,7 @@ export type Database = {
         Row: {
           assignee_id: string | null
           created_at: string
+          dedupe_key: string | null
           description: string | null
           done_at: string | null
           due_on: string | null
@@ -2651,6 +2655,7 @@ export type Database = {
         Insert: {
           assignee_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           description?: string | null
           done_at?: string | null
           due_on?: string | null
@@ -2663,6 +2668,7 @@ export type Database = {
         Update: {
           assignee_id?: string | null
           created_at?: string
+          dedupe_key?: string | null
           description?: string | null
           done_at?: string | null
           due_on?: string | null
@@ -3067,6 +3073,7 @@ export type Database = {
         }
         Returns: string
       }
+      generate_followups: { Args: never; Returns: number }
       publish_service_version: {
         Args: { p_version: string }
         Returns: undefined
