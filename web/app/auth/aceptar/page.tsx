@@ -4,30 +4,30 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 
-/** Solo rutas internas: evita redirecciones abiertas (//otro-sitio, https://…). */
+/** Solo rutas del mismo sitio: se resuelve la URL completa y se exige el mismo origen (evita //, \\, tabulaciones…). */
 function safeNext(raw: string | null) {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) return "/cuenta/contrasena";
-  return raw;
-}
-
-function emailFromJwt(token: string) {
+  const fallback = "/cuenta/contrasena";
+  if (!raw) return fallback;
   try {
-    const payload = JSON.parse(atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
-    return typeof payload.email === "string" ? payload.email : null;
+    const url = new URL(raw, window.location.origin);
+    if (url.origin !== window.location.origin) return fallback;
+    return `${url.pathname}${url.search}${url.hash}`;
   } catch {
-    return null;
+    return fallback;
   }
 }
 
 /**
  * Destino de los enlaces de invitación y de recuperación de contraseña.
  * - ?code= (PKCE): ligado al navegador que lo pidió, se canjea directamente.
- * - #access_token (invitación): se pide confirmación mostrando la cuenta, para que un enlace ajeno
- *   no pueda abrir una sesión en otra cuenta sin que la persona lo note (login CSRF).
+ * - #access_token (invitación): el servidor de Supabase valida el token y devuelve el correo real de la cuenta;
+ *   se pide confirmación mostrándolo, para que un enlace ajeno no abra una sesión en otra cuenta sin que la
+ *   persona lo note (login CSRF). Si ya hay una sesión de otra cuenta, se avisa.
  */
 export default function AcceptPage() {
   const router = useRouter();
   const [error, setError] = useState<string>();
+  const [current, setCurrent] = useState<string | null>(null);
   const [pending, setPending] = useState<{ email: string; access: string; refresh: string; next: string } | null>(null);
 
   useEffect(() => {
@@ -40,6 +40,8 @@ export default function AcceptPage() {
     window.history.replaceState(null, "", url.pathname);
 
     (async () => {
+      const { data: me } = await supabase.auth.getUser();
+      setCurrent(me.user?.email ?? null);
       if (hash.get("error_description")) {
         setError(hash.get("error_description")!.replace(/\+/g, " "));
         return;
@@ -47,9 +49,9 @@ export default function AcceptPage() {
       const access = hash.get("access_token");
       const refresh = hash.get("refresh_token");
       if (access && refresh) {
-        const email = emailFromJwt(access);
-        if (!email) return setError("El enlace no es válido.");
-        setPending({ email, access, refresh, next });
+        const { data, error: e } = await supabase.auth.getUser(access);
+        if (e || !data.user?.email) return setError("El enlace no es válido o ya caducó. Pide uno nuevo al equipo.");
+        setPending({ email: data.user.email, access, refresh, next });
         return;
       }
       if (code) {
@@ -84,7 +86,10 @@ export default function AcceptPage() {
           ) : pending ? (
             <>
               <h2>Bienvenida a tu espacio</h2>
-              <p className="muted" style={{ marginTop: 8 }}>Vas a entrar con la cuenta <b>{pending.email}</b>. Si no es tu correo, cierra esta página.</p>
+              <p className="muted" style={{ marginTop: 8 }}>Vas a entrar con la cuenta <b>{pending.email}</b>. Si no es tu correo, no continúes.</p>
+              {current && current !== pending.email && (
+                <p className="formerr" style={{ marginTop: 8 }}>Ahora tienes abierta la cuenta {current}; si continúas, se cerrará.</p>
+              )}
               <p style={{ marginTop: 16, display: "flex", gap: 8, justifyContent: "center" }}>
                 <button className="btn" onClick={confirm}>Sí, es mi cuenta</button>
                 <a className="btn ghost" href="/login">No soy yo</a>
