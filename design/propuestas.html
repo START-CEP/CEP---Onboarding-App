@@ -1,0 +1,697 @@
+<title>Propuestas App de Pareja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+/* ---------- Demo bar + page tokens ---------- */
+:root{--page:#E9EAEE;--bar:#FFFFFF;--bar-ink:#1B1D27;--bar-muted:#6A6E7E;--bar-line:#D9DBE3;--bar-on:#1B1D27;--bar-on-ink:#FFFFFF}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--page:#0B0C10;--bar:#14161C;--bar-ink:#ECEDF2;--bar-muted:#9497A6;--bar-line:#2A2D37;--bar-on:#ECEDF2;--bar-on-ink:#14161C}}
+:root[data-theme="dark"]{color-scheme:dark;--page:#0B0C10;--bar:#14161C;--bar-ink:#ECEDF2;--bar-muted:#9497A6;--bar-line:#2A2D37;--bar-on:#ECEDF2;--bar-on-ink:#14161C}
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--bar-ink);font-family:"Manrope",system-ui,-apple-system,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+button:disabled{cursor:not-allowed;opacity:.55}
+:focus-visible{outline:2px solid var(--accent,#0C8F8C);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.demobar{position:relative;z-index:50;background:var(--bar);border-bottom:1px solid var(--bar-line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.demobar .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bar-muted);font-weight:700}
+.demobar .grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--bar-line);border-radius:999px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--bar-muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--bar-on);color:var(--bar-on-ink)}
+.demobar .linkbtn{border:1px solid var(--bar-line);background:transparent;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.demobar .note{margin-left:auto;font-size:12px;color:var(--bar-muted)}
+@media(max-width:860px){.demobar .note{display:none}}
+
+/* ---------- App tokens (Ruta) ---------- */
+.app{
+  --bg:#F1F4FA;--surface:#FFFFFF;--surface2:#E8EDF7;--ink:#0E1A3A;--muted:#58658A;--line:#DEE4F0;
+  --accent:#0C8F8C;--accent-ink:#FFFFFF;--accent-soft:#DDF3F1;--hi:#E8A21E;
+  --ok:#0C8F8C;--ok-soft:#DDF3F1;--warn:#B76A06;--warn-soft:#FCEFD8;--crit:#C23A4E;--crit-soft:#FAE3E7;
+  --side:#0E1A3A;--side-ink:#E6ECFA;--side-muted:#8E9AC0;--side-active:#1C2B57;--side-active-ink:#5FE0D4;--side-line:#1F2D57;
+  --w-emilia:#7A5AF8;--w-psico:#0C8F8C;--w-diego:#E0662E;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;--body:"Manrope",system-ui,sans-serif;
+  --rad:20px;--rad-s:12px;--shadow:0 1px 2px rgba(14,26,58,.05),0 8px 24px -12px rgba(14,26,58,.14);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .app{color-scheme:dark;--bg:#071027;--surface:#0F1B3B;--surface2:#16244A;--ink:#E8EEFF;--muted:#93A0C6;--line:#21305C;--accent:#43D3C7;--accent-ink:#071027;--accent-soft:#103A44;--hi:#F6C35B;--ok:#43D3C7;--ok-soft:#103A44;--warn:#F6C35B;--warn-soft:#3A2D10;--crit:#F27A8B;--crit-soft:#3D1A21;--side:#050C1F;--side-active:#13224A;--side-line:#15224A;--w-emilia:#A78BFA;--w-psico:#43D3C7;--w-diego:#F59E6B;--shadow:0 8px 24px -12px rgba(0,0,0,.6)}}
+:root[data-theme="dark"] .app{color-scheme:dark;--bg:#071027;--surface:#0F1B3B;--surface2:#16244A;--ink:#E8EEFF;--muted:#93A0C6;--line:#21305C;--accent:#43D3C7;--accent-ink:#071027;--accent-soft:#103A44;--hi:#F6C35B;--ok:#43D3C7;--ok-soft:#103A44;--warn:#F6C35B;--warn-soft:#3A2D10;--crit:#F27A8B;--crit-soft:#3D1A21;--side:#050C1F;--side-active:#13224A;--side-line:#15224A;--w-emilia:#A78BFA;--w-psico:#43D3C7;--w-diego:#F59E6B;--shadow:0 8px 24px -12px rgba(0,0,0,.6)}
+
+/* ---------- Shell ---------- */
+.app{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14.5px;line-height:1.5;display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);color:var(--side-ink);border-right:1px solid var(--side-line);padding:22px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow:auto;align-self:start}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px 18px;font-family:var(--display);font-weight:700;font-size:19px}
+.brand .mark{width:30px;height:30px;border-radius:9px;background:#43D3C7;color:#071027;display:grid;place-items:center;font-size:13px}
+.brand small{display:block;font-family:var(--body);font-weight:500;font-size:11.5px;color:var(--side-muted)}
+.navlabel{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--side-muted);padding:14px 12px 6px;font-weight:700}
+.nav{display:flex;align-items:center;gap:11px;width:100%;border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:var(--rad-s);color:var(--side-ink);font-weight:500;font-size:14.5px}
+.nav:hover{background:var(--side-active)}
+.nav[aria-current="page"]{background:var(--side-active);color:var(--side-active-ink);font-weight:700}
+.nav .cnt{margin-left:auto;font-size:11px;font-weight:700;background:#F6C35B;color:#1A1203;border-radius:999px;padding:1px 7px}
+.side .spacer{flex:1}
+.main{min-width:0;padding:0 32px 40px;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.top .crumb{font-size:13px;color:var(--muted)}
+.top .crumb b{color:var(--ink);font-weight:700}
+.top .r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.iconbtn{width:38px;height:38px;border-radius:var(--rad-s);border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--muted);position:relative}
+.iconbtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--crit)}
+.who{display:flex;align-items:center;gap:10px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--display);flex:none}
+.who b{display:block;font-size:13.5px}.who span{font-size:12px;color:var(--muted)}
+.content{display:flex;flex-direction:column;gap:22px;flex:1}
+.bnav{display:none}
+.i{flex:none;vertical-align:middle}
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}.side{display:none}.main{padding:0 16px 104px}.top .crumb{display:none}.who div{display:none}
+  .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--side);border-top:1px solid var(--side-line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around}
+  .bnav button{border:0;background:transparent;color:var(--side-muted);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:700;padding:6px 8px;border-radius:10px}
+  .bnav button[aria-current="page"]{color:var(--side-active-ink);background:var(--side-active)}
+}
+
+/* ---------- Components ---------- */
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.02em}
+h1{font-size:clamp(26px,3.2vw,34px);line-height:1.15;font-weight:700}
+h2{font-size:19px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+p{margin:0}
+.eyebrow{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+.lead{color:var(--muted);font-size:15.5px;max-width:64ch;margin-top:8px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.ph{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--rad);padding:22px;box-shadow:var(--shadow);min-width:0}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:999px;font-weight:700;font-size:14px;white-space:nowrap}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.sm{padding:7px 12px;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:3px 10px;border-radius:999px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.crit{background:var(--crit-soft);color:var(--crit)}
+.chip.info{background:var(--accent-soft);color:var(--accent)}
+.chip.pair{background:transparent;border:1px dashed var(--accent);color:var(--accent)}
+.whochip{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:var(--wc);background:color-mix(in srgb,var(--wc) 12%,transparent);padding:3px 10px 3px 4px;border-radius:999px;white-space:nowrap}
+.whochip i{width:18px;height:18px;border-radius:50%;background:var(--wc);color:#fff;display:grid;place-items:center;font-style:normal;font-size:10px}
+.w-emilia{--wc:var(--w-emilia)}.w-psico{--wc:var(--w-psico)}.w-diego{--wc:var(--w-diego)}.w-team,.w-video{--wc:var(--muted)}
+.bar{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px}
+.grid2e{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+@media(max-width:1060px){.grid2,.grid2e{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column}
+.li{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:0;padding-top:0}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;font-weight:700}
+.li .tx span{font-size:13px;color:var(--muted)}
+.li .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.ico{width:38px;height:38px;border-radius:var(--rad-s);display:grid;place-items:center;background:var(--surface2);color:var(--muted);flex:none}
+.ico.ok{background:var(--ok-soft);color:var(--ok)}
+.ico.info{background:var(--accent-soft);color:var(--accent)}
+.ico.warn{background:var(--warn-soft);color:var(--warn)}
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--rad-s);background:var(--warn-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+.alert .i{color:var(--warn);margin-top:2px}
+.alert.info{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 25%,transparent)}
+.alert.info .i{color:var(--accent)}
+.video{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:var(--rad);overflow:hidden;background:radial-gradient(120% 90% at 20% 20%,rgba(67,211,199,.55) 0%,transparent 60%),radial-gradient(100% 80% at 85% 90%,rgba(246,195,91,.45) 0%,transparent 55%),#0E1A3A;display:grid;place-items:center;color:#fff}
+.video .play{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.95);color:#111;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.video .cap{position:absolute;left:16px;bottom:14px;right:16px;display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.video .faces{position:absolute;top:16px;left:16px;display:flex}
+.video .faces span{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.9);background:rgba(255,255,255,.25);display:grid;place-items:center;font-size:12px;font-weight:700;margin-right:-8px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-weight:700;font-size:14px}
+.field .hint{font-size:12.5px;color:var(--muted)}
+.input,textarea.input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--rad-s);padding:11px 13px;font:inherit}
+textarea.input{min-height:92px;resize:vertical}
+.scale{display:flex;gap:6px;flex-wrap:wrap}
+.scale span{width:36px;height:36px;border-radius:var(--rad-s);border:1px solid var(--line);display:grid;place-items:center;font-weight:700;font-size:13px;font-variant-numeric:tabular-nums}
+.scale span.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tags{display:flex;gap:8px;flex-wrap:wrap}
+.tags span{border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500}
+.tags span.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.tabs{display:inline-flex;gap:4px;background:var(--surface2);padding:4px;border-radius:999px;flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:999px;font-weight:700;font-size:13.5px;color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.drop{border:1.5px dashed var(--line);border-radius:var(--rad);padding:26px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted)}
+.steps{display:flex;gap:8px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--rad-s);border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:700}
+.step .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;background:var(--surface2);color:var(--muted)}
+.step.on{border-color:var(--accent);color:var(--accent)}
+.step.on .n{background:var(--accent);color:var(--accent-ink)}
+.step.ok .n{background:var(--ok-soft);color:var(--ok)}
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat b{font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums;line-height:1}
+.stat span{font-size:13px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media(max-width:860px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.quote{font-family:var(--display);font-size:19px;line-height:1.45;max-width:62ch}
+.quote cite{display:block;font-family:var(--body);font-style:normal;font-size:13px;color:var(--muted);margin-top:10px}
+.scrollx{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:720px}
+th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0 12px 10px}
+td{padding:12px;border-top:1px solid var(--line);vertical-align:middle}
+td b{font-weight:700}
+.num{font-variant-numeric:tabular-nums}
+.pager{margin-top:28px;display:flex;align-items:center;gap:14px;justify-content:space-between;padding:16px 20px;border-radius:var(--rad);background:var(--surface);border:1px solid var(--line);flex-wrap:wrap}
+.pager .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+
+/* Hero + camino de 14 pasos */
+.hero{border-radius:var(--rad);padding:26px;background:radial-gradient(90% 120% at 100% 0%,rgba(67,211,199,.28),transparent 55%),radial-gradient(70% 90% at 0% 100%,rgba(246,195,91,.18),transparent 55%),#0E1A3A;color:#E8EEFF;display:flex;flex-direction:column;gap:20px}
+.hero .eyebrow{color:#8E9AC0}
+.hero h1{color:#fff}
+.hero .lead{color:#B9C3E2}
+.hero .muted{color:#8E9AC0}
+.path{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px}
+.path .c{height:46px;border-radius:8px;background:rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#8E9AC0;text-align:center;line-height:1.1;padding:0 2px;position:relative;overflow:hidden}
+.path .c small{font-size:9.5px;font-weight:600;opacity:.85;white-space:nowrap}
+.path .c.d{background:#43D3C7;color:#071027}
+.path .c.n{background:#F6C35B;color:#1A1203;height:56px;margin-top:-5px;box-shadow:0 0 0 4px rgba(246,195,91,.18)}
+.path .c .wdot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--wc)}
+.blocks{display:grid;grid-template-columns:repeat(14,minmax(0,1fr));gap:4px;margin-top:8px}
+.blocks span{border-top:2px solid rgba(255,255,255,.18);padding-top:5px;font-size:12px;font-weight:700;color:#8E9AC0}
+.blocks span.on{border-color:#F6C35B;color:#fff}
+@media(max-width:700px){.path .c small{display:none}.path .c{font-size:10px;height:40px}.path .c.n{height:48px}.blocks span{font-size:10px}}
+.mission{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.mission .k{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:#F6C35B;font-weight:700}
+.mission b{font-family:var(--display);font-size:22px;line-height:1.2}
+.mission .why{color:#B9C3E2;font-size:14px}
+.mission .btn{align-self:flex-start;background:#43D3C7;color:#071027}
+.reqs{display:flex;gap:8px;flex-wrap:wrap}
+.req{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:4px 10px;border-radius:999px;background:var(--surface2);color:var(--muted)}
+.req.ok{background:var(--ok-soft);color:var(--ok)}
+.req.no{background:var(--warn-soft);color:var(--warn)}
+.hero .req{background:rgba(255,255,255,.08);color:#B9C3E2}
+.hero .req.ok{background:rgba(67,211,199,.16);color:#5FE0D4}
+.hero .req.no{background:rgba(246,195,91,.16);color:#F6C35B}
+
+/* Cuadro de las 4 áreas */
+.gantt{display:grid;grid-template-columns:180px minmax(0,1fr);row-gap:12px;min-width:780px}
+.gantt .lab{font-weight:700;font-size:13.5px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.gantt .lab span{font-weight:500;font-size:11.5px;color:var(--muted)}
+.gantt .lab .chip{align-self:flex-start;font-size:11px;padding:1px 8px}
+.gtrack{position:relative;display:grid;grid-template-columns:repeat(18,minmax(0,1fr));align-items:center;min-height:40px;background:var(--surface2);border-radius:10px;padding:0 2px}
+.gtrack .t{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--hi);z-index:1}
+.gm{height:26px;margin:0 2px;border-radius:7px;display:grid;place-items:center;font-size:10.5px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:var(--surface);position:relative;z-index:2;white-space:nowrap}
+.gm.d{background:var(--accent);color:var(--accent-ink)}
+.gm.n{border-color:var(--hi);background:var(--hi);color:#1A1203}
+.gm.w{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+.gm.l{border-style:dashed;border-color:color-mix(in srgb,var(--muted) 45%,transparent);color:var(--muted);background:transparent}
+.gm.dot{width:13px;height:13px;border-radius:50%;justify-self:center;margin:0}
+.gm .wdot{position:absolute;top:-4px;right:-4px;width:9px;height:9px;border-radius:50%;background:var(--wc);border:2px solid var(--surface)}
+.gmonths{display:grid;grid-template-columns:repeat(18,minmax(0,1fr));font-size:11.5px;color:var(--muted);font-weight:700}
+.gmonths span{border-left:1px solid var(--line);padding-left:5px}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:16px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;border:1.5px solid var(--accent)}
+.legend i.w{border-radius:50%;border:0;background:var(--wc)}
+.agenda .li .d{font-family:var(--display);font-size:22px;width:84px;flex:none;line-height:1.1;font-weight:700}
+.agenda .li .d small{display:block;font-family:var(--body);font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* Sesiones / camino */
+.sessrow{display:flex;gap:16px;padding:16px;border:1px solid var(--line);border-radius:var(--rad-s);background:var(--bg);align-items:flex-start;flex-wrap:wrap}
+.sessrow .n{font-family:var(--display);font-size:22px;font-weight:700;width:44px;color:var(--muted)}
+.sessrow.next{border-color:var(--hi);background:color-mix(in srgb,var(--hi) 10%,var(--surface))}
+.sessrow.next .n{color:var(--warn)}
+.sessrow.done .n{color:var(--accent)}
+.sessrow .tx{flex:1;min-width:220px;display:flex;flex-direction:column;gap:7px}
+.agendaitems{margin:0;padding-left:18px;color:var(--ink);font-size:13.5px}
+.blockhead{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:8px 0 2px}
+.vstep{display:grid;grid-template-columns:34px minmax(0,1fr);gap:14px;position:relative;padding-bottom:16px}
+.vstep::before{content:"";position:absolute;left:16px;top:34px;bottom:0;width:2px;background:var(--line)}
+.vstep:last-child::before{display:none}
+.vstep .dotn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-weight:700;font-size:13px;background:var(--surface2);color:var(--muted);font-family:var(--display);position:relative;z-index:1}
+.vstep.d .dotn{background:var(--accent);color:var(--accent-ink)}
+.vstep.d::before{background:var(--accent)}
+.vstep.n .dotn{background:var(--hi);color:#1A1203;box-shadow:0 0 0 5px color-mix(in srgb,var(--hi) 25%,transparent)}
+.vstep .body{display:flex;flex-direction:column;gap:6px;padding-top:5px}
+.vstep .body .top3{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.split{display:grid;grid-template-columns:330px minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:1060px){.split{grid-template-columns:1fr}}
+.modlist .li{cursor:pointer;border-radius:var(--rad-s)}
+.modlist .li.on .tx b{color:var(--accent)}
+.qblock{display:flex;flex-direction:column;gap:20px}
+.res{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--rad-s);background:var(--bg);font-size:13px}
+.res .tx{flex:1;min-width:0}
+.res b{display:block;font-weight:700;font-size:13.5px}
+
+/* Login */
+.login{grid-column:1/-1;min-height:calc(100vh - 52px);display:grid;place-items:center;padding:32px 16px}
+.lbox{width:100%;max-width:980px;display:grid;grid-template-columns:1fr 1fr;border-radius:var(--rad);overflow:hidden;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+@media(max-width:800px){.lbox{grid-template-columns:1fr}}
+.lbox .art{padding:36px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;background:#0E1A3A;color:#E8EEFF}
+.lbox .art h2{font-size:28px;line-height:1.2;color:#fff}
+.lbox form{padding:40px;display:flex;flex-direction:column;gap:16px}
+.whopick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.whopick button{border:1px solid var(--line);background:var(--bg);border-radius:var(--rad-s);padding:12px;display:flex;gap:10px;align-items:center;text-align:left}
+.whopick button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+</style>
+
+<div class="demobar" role="toolbar" aria-label="Controles de la demo">
+  <div class="grp"><span class="tag">Momento</span>
+    <div class="seg" id="segPh"><button data-v="day1">Día 1 · Paso 2</button><button data-v="mid">Paso 9</button><button data-v="end">Paso 13</button></div></div>
+  <div class="grp"><span class="tag">Entra</span>
+    <div class="seg" id="segW"><button data-v="pedro">Pedro</button><button data-v="andrea">Andrea</button></div></div>
+  <div class="grp"><button class="linkbtn" id="toLogin">Ver login</button><button class="linkbtn" id="toTeam">Vista equipo</button></div>
+  <span class="note">Ruta · Proceso de pareja $3.000 · maqueta con datos de ejemplo</span>
+</div>
+<div id="root"></div>
+
+<script>
+const S={screen:'inicio',who:'pedro',phase:'mid',taskTab:'online',mod:null};
+try{const s=JSON.parse(localStorage.getItem('cep-demo2')||'{}');Object.assign(S,s,{mod:null});}catch(e){}
+const save=()=>{try{localStorage.setItem('cep-demo2',JSON.stringify({screen:S.screen,who:S.who,phase:S.phase}))}catch(e){}};
+
+const WHO={pedro:{n:'Pedro',full:'Pedro Ramírez',ini:'P',other:'Andrea'},andrea:{n:'Andrea',full:'Andrea Solís',ini:'A',other:'Pedro'}};
+const STAFF={emilia:{n:'Emilia',ini:'E'},psico:{n:'Psicóloga',ini:'Ps'},diego:{n:'Diego',ini:'D'},team:{n:'Equipo',ini:'Eq'},video:{n:'Video',ini:'▶'}};
+const BLOCKS=[['Inicio',5],['Ciclo 1',3],['Ciclo 2',3],['Ciclo 3',2],['Cierre',1]];
+
+/* Los 14 pasos (documento de Emilia, 14 oct 2026) */
+const STEPS=[
+ {n:1,short:'Entrevista',b:0,who:'team',t:'Entrevista de claridad',q:'Entrevista de claridad y cierre',req:[]},
+ {n:2,short:'Onboarding',b:0,who:'team',t:'Onboarding',q:'Contrato, accesos, grupo de WhatsApp, perfil y envío de cuestionarios',req:['Compra confirmada']},
+ {n:3,short:'Bienvenida',b:0,who:'video',t:'Bienvenida y Radiografía Inicial',q:'Video que explica el proceso y Cuestionario de Radiografía Inicial',req:['Onboarding completo']},
+ {n:4,short:'Módulo 0',b:0,who:'video',t:'Módulo 0 · Responsabilidad y validación emocional',q:'Primer módulo en video. Pueden verlo desde el primer día.',req:[]},
+ {n:5,s:1,b:0,who:'emilia',t:'Devolución de la Radiografía Inicial',q:'Devolución de la Radiografía Inicial, explicación del proceso, metas y qué se va a trabajar',req:['rad',0]},
+ {n:6,s:2,b:1,who:'psico',t:'Historia de vida · Pedro',q:'Sesión individual de Pedro: su historia de vida',req:[1],indiv:'pedro'},
+ {n:7,s:3,b:1,who:'psico',t:'Historia de vida · Andrea',q:'Sesión individual de Andrea: su historia de vida',req:[2],indiv:'andrea'},
+ {n:8,s:4,b:1,who:'diego',t:'DISC: entender la personalidad',q:'Cómo es cada uno y por qué chocan donde chocan',req:[3]},
+ {n:9,s:5,b:2,who:'emilia',t:'Definir el ciclo negativo',q:'Se define por primera vez su ciclo negativo',req:[1,2,3,4],oblig:[1,2,3]},
+ {n:10,s:6,b:2,who:'psico',t:'El ciclo desde los puntos sensibles',q:'Profundizar el ciclo negativo desde los puntos sensibles',req:[5]},
+ {n:11,s:7,b:2,who:'psico',t:'El ciclo desde las necesidades profundas',q:'Profundizar el ciclo negativo desde las necesidades profundas',req:[6]},
+ {n:12,s:8,b:3,who:'emilia',t:'Plan de acción',q:'Plan de acción, hasta las frases poderosas',req:[7]},
+ {n:13,s:9,b:3,who:'psico',t:'Heridas',q:'Trabajo sobre las heridas',req:[8]},
+ {n:14,s:10,b:4,who:'psico',t:'Metas y cierre del proceso',q:'Revisión de metas y cierre',req:[]}
+];
+const SESS=STEPS.filter(x=>x.s);
+const S_WEEK=[2,3,4,5,7,9,11,13,15,17];
+const S_DATE=['9 sep','16 sep','23 sep','30 sep','14 oct','28 oct','11 nov','25 nov','9 dic','23 dic'];
+const MODS=['Responsabilidad y validación emocional','Historia de vida','Lo que cada uno trae a la relación','Personalidad: por qué somos distintos','El ciclo negativo','Puntos sensibles','Necesidades profundas','Plan de acción y frases poderosas','Heridas'];
+const MOD_MIN=[22,28,26,31,34,29,30,33,36];
+const MOD_FOR=['S1','S2','S3','S4 y S5','S5','S6','S7','S8','S9'];
+const M_WEEK=[1,2,3,4,6,8,10,12,14];
+const G_DATE=['9 sep','23 sep','7 oct','21 oct','4 nov','18 nov','2 dic','16 dic','30 dic'];
+const G_TOPIC=['Pedir una pausa sin herir','Escuchar para entender','Acuerdos de trabajo y de casa','Reparar después de discutir','Validar sin estar de acuerdo','Tiempo juntos en semanas intensas','Pedir lo que necesito','Rituales de conexión','Sostener los cambios'];
+const OB=[['Firmar el contrato','Qué firman y por qué, en cinco puntos'],['Unirse al grupo de WhatsApp','Su canal directo con Yasna, del equipo'],['Completar su perfil','Datos de contacto y horarios que les quedan bien'],['Ver el video de bienvenida','Emilia y Diego les explican el proceso'],['Radiografía Inicial · parte individual','Cada uno responde la suya, en privado'],['Radiografía Inicial · parte en pareja','La responden juntos; queda en la ficha de ambos']];
+const MONTHS=[['Sep',4],['Oct',5],['Nov',4],['Dic',4],['Ene',1]];
+
+const DATA={
+ day1:{cur:2,week:1,today:'1 de septiembre',status:'start',
+  msg:'Hoy empiezan. Completen el onboarding y, mientras tanto, ya pueden ver el Módulo 0.',
+  ob:['current','todo','todo','locked','locked','locked'],rad:false,
+  mods:['current','locked','locked','locked','locked','locked','locked','locked','locked'],
+  todo:[{t:'Firmar el contrato',why:'Es lo primero del onboarding. Cada uno firma desde su acceso.',k:'pen',go:'contrato',time:'10 min'},
+        {t:'Unirse al grupo de WhatsApp',why:'Ahí Yasna les confirma fechas y enlaces',k:'chat',go:'bienvenida',time:'1 min'},
+        {t:'Ver el Módulo 0 · Responsabilidad y validación emocional',why:'No tiene requisito: pueden empezar a aprender desde hoy',k:'play',go:'modulos',time:'22 min'}],
+  gDone:0,gToday:false},
+ mid:{cur:9,week:6,today:'7 de octubre',status:'ok',
+  msg:'Terminaron el Ciclo 1. Para entrar a su Sesión 5 con Emilia les faltan dos cosas.',
+  ob:['done','done','done','done','done','done'],rad:true,
+  mods:['done','done','done','task','current','locked','locked','locked','locked'],
+  todo:[{t:'Entregar la tarea del Módulo 3',why:'Los Módulos 1 a 3 son obligatorios para su Sesión 5 con Emilia',k:'pen',go:'modulos',time:'20 min',urgent:true},
+        {t:'Ver el Módulo 4 · El ciclo negativo',why:'También es requisito de la Sesión 5',k:'play',go:'modulos',time:'34 min'},
+        {t:'Dejar su pregunta para el coaching grupal',why:'Hoy a las 7:00 pm',k:'chat',go:'coaching',time:'2 min'}],
+  gDone:2,gToday:true},
+ end:{cur:13,week:14,today:'2 de diciembre',status:'warn',
+  msg:'Están en la recta final: les quedan 2 sesiones. Vean el Módulo 8 para habilitar la Sesión 9.',
+  ob:['done','done','done','done','done','done'],rad:true,
+  mods:['done','done','done','done','done','done','done','done','current'],
+  todo:[{t:'Ver el Módulo 8 · Heridas',why:'Es el requisito para su Sesión 9',k:'play',go:'modulos',time:'36 min',urgent:true},
+        {t:'Entregar la tarea del Módulo 8',why:'Se revisa en la Sesión 9',k:'pen',go:'modulos',time:'25 min'},
+        {t:'Dejar su pregunta para el coaching grupal',why:'Hoy a las 7:00 pm',k:'chat',go:'coaching',time:'2 min'}],
+  gDone:6,gToday:true}
+};
+
+/* ---------- icons ---------- */
+const IP={home:'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',play:'M8 5v14l11-7z',pen:'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4',pulse:'M3 12h4l3-8 4 16 3-8h4',book:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM19 19v2H6',cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',route:'M6 19a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM18 9a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM6 15V9a4 4 0 0 1 4-4h6M18 9v6a4 4 0 0 1-4 4H8',users:'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.6',check:'M5 12l5 5L20 7',lock:'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',arrow:'M5 12h14M13 6l6 6-6 6',chat:'M4 5h16v11H9l-5 4z',bell:'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',upload:'M12 16V4M7 9l5-5 5 5M4 20h16',clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',heart:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',out:'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',file:'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5',info:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5v.5',dl:'M12 4v12M7 11l5 5 5-5M4 20h16',flag:'M5 21V4h11l-2 4 2 4H5',user:'M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0'};
+const ico=(n,s=18)=>n==='play'?`<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${IP.play}"/></svg>`:`<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IP[n]}"/></svg>`;
+
+/* ---------- helpers ---------- */
+const D=()=>DATA[S.phase];
+const W=()=>WHO[S.who];
+const go=s=>`data-go="${s}"`;
+const whochip=k=>`<span class="whochip w-${k}"><i>${STAFF[k].ini}</i>${STAFF[k].n}</span>`;
+const stepState=(n,d)=>n<d.cur?'d':n===d.cur?'n':'f';
+function counts(d){
+  const obDone=d.ob.filter(x=>x==='done').length;
+  const vids=d.mods.filter(x=>x==='done'||x==='task').length;
+  const tasks=d.mods.filter(x=>x==='done').length;
+  const sDone=SESS.filter(s=>s.n<d.cur).length;
+  return {obDone,vids,tasks,sDone,stepsDone:d.cur-1,pct:Math.round((d.cur-1)/14*100)};
+}
+function reqList(step,d){
+  return step.req.map(r=>{
+    if(r==='rad')return {label:'Radiografía Inicial',ok:d.rad};
+    if(typeof r==='string')return {label:r,ok:step.n<=d.cur};
+    const st=d.mods[r];
+    const ok=st==='done';
+    const note=st==='task'?' · falta la tarea':'';
+    return {label:'Módulo '+r+note,ok,oblig:step.oblig&&step.oblig.includes(r)};
+  });
+}
+const reqChips=(list,cls='')=>`<div class="reqs ${cls}">${list.map(r=>`<span class="req ${r.ok?'ok':'no'}">${ico(r.ok?'check':'lock',13)} ${r.label}${r.oblig?' · obligatorio':''}</span>`).join('')}</div>`;
+const nextSession=d=>SESS.find(s=>s.n>=d.cur);
+const statusChip=d=>d.status==='warn'?`<span class="chip warn">${ico('clock',14)} Quedan 2 sesiones</span>`:d.status==='start'?`<span class="chip info">${ico('flag',14)} Paso ${d.cur} de 14</span>`:`<span class="chip ok">${ico('check',14)} Van al día</span>`;
+
+const NAV=[['inicio','El proceso','home'],['camino','Los 14 pasos','route'],['bienvenida','Bienvenida','play'],['contrato','Contrato','pen'],['radiografia','Radiografía Inicial','pulse'],['modulos','Módulos','book'],['terapia','Sesiones de Terapia','heart'],['coaching','Coaching Grupal','users']];
+const TITLES={inicio:'El proceso',camino:'Los 14 pasos',bienvenida:'Bienvenida',contrato:'Contrato',radiografia:'Radiografía Inicial',modulos:'Módulos',terapia:'Sesiones de Terapia',coaching:'Coaching Grupal',equipo:'Vista del equipo'};
+function navBadge(id,d){
+  if(id==='modulos'){const n=d.mods.filter(x=>x==='task'||x==='current').length;return n?`<span class="cnt">${n}</span>`:''}
+  if(id==='contrato'&&d.ob[0]!=='done')return `<span class="cnt">1</span>`;
+  if(id==='radiografia'&&!d.rad)return `<span class="cnt">2</span>`;
+  return '';
+}
+
+/* ---------- shell ---------- */
+function shell(inner){
+  const d=D(),w=W();
+  return `<div class="app">
+  <aside class="side">
+    <div class="brand"><span class="mark">C</span><div>CEP<small>Su ruta de pareja</small></div></div>
+    <div class="navlabel">Menú</div>
+    ${NAV.map(([id,label,ic])=>`<button class="nav" ${go(id)} ${S.screen===id?'aria-current="page"':''}>${ico(ic)}<span>${label}</span>${navBadge(id,d)}</button>`).join('')}
+    <div class="spacer"></div>
+    <div class="navlabel">Otros</div>
+    <button class="nav" ${go('equipo')} ${S.screen==='equipo'?'aria-current="page"':''}>${ico('users')}<span>Vista equipo <span class="small" style="opacity:.7">(demo)</span></span></button>
+    <button class="nav" ${go('login')}>${ico('out')}<span>Cerrar sesión</span></button>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div class="crumb">Proceso de pareja · 14 pasos · <b>${TITLES[S.screen]}</b></div>
+      <div class="r"><span class="chip info">${ico('route',14)} Paso ${d.cur} de 14</span>
+        <button class="iconbtn" aria-label="Avisos">${ico('bell')}<span class="dot"></span></button>
+        <div class="who"><span class="av">${w.ini}</span><div><b>${w.full}</b><span>Con ${w.other}</span></div></div>
+      </div>
+    </div>
+    <div class="content">${inner}</div>
+  </main>
+  <nav class="bnav" aria-label="Menú">
+    ${[['inicio','Proceso','home'],['camino','Pasos','route'],['modulos','Módulos','book'],['terapia','Terapia','heart'],['coaching','Coaching','users']].map(([id,l,ic])=>`<button ${go(id)} ${S.screen===id?'aria-current="page"':''}>${ico(ic,20)}${l}</button>`).join('')}
+  </nav>
+</div>`;
+}
+const NEXT={camino:['modulos','Módulos'],bienvenida:['contrato','Contrato'],contrato:['radiografia','Radiografía Inicial'],radiografia:['modulos','Módulos'],modulos:['terapia','Sesiones de Terapia'],terapia:['coaching','Coaching Grupal'],coaching:['camino','Los 14 pasos'],equipo:['inicio','Volver a la vista de pareja']};
+function pager(){
+  const d=D();
+  const [to,label]=S.screen==='inicio'?[d.todo[0].go,d.todo[0].t]:NEXT[S.screen];
+  return `<div class="pager"><span class="lab">${S.screen==='inicio'?'Su siguiente paso':'Siguiente'}</span><button class="btn" ${go(to)}>${label} ${ico('arrow')}</button></div>`;
+}
+
+/* ---------- camino (14 pasos) en el hero ---------- */
+function pathBar(d){
+  const cells=STEPS.map(s=>{
+    const st=stepState(s.n,d);
+    const lab=s.s?'S'+s.s:s.short;
+    const sub=s.s?STAFF[s.who].n:'Paso '+s.n;
+    return `<div class="c ${st}" title="Paso ${s.n} · ${s.t}">${s.s?`<span class="wdot w-${s.who}"></span>`:''}${lab}<small>${sub}</small></div>`;
+  }).join('');
+  let col=1;
+  const blocks=BLOCKS.map(([name,span],i)=>{const on=STEPS[d.cur-1].b===i;const x=`<span class="${on?'on':''}" style="grid-column:${col}/span ${span}">${name}</span>`;col+=span;return x}).join('');
+  return `<div><div class="path" aria-label="Paso ${d.cur} de 14">${cells}</div><div class="blocks">${blocks}</div>
+  <p class="muted small" style="margin-top:10px">Cada casilla es un paso. Para entrar a cada paso hay un requisito. El punto de color indica con quién es la sesión.</p></div>`;
+}
+
+/* ---------- cuadro de 4 áreas (semanas) ---------- */
+function gantt(d){
+  const tpos=`left:calc(${(d.week-.5)/18*100}% - 1px)`;
+  const c=counts(d);
+  const row=(lab,sub,state,cells)=>`<div class="lab">${lab}<span>${sub}</span>${state}</div><div class="gtrack"><span class="t" style="${tpos}"></span>${cells}</div>`;
+  const okc=`<span class="chip ok">${ico('check',12)} Al día</span>`;
+  const obDone=d.ob.every(x=>x==='done');
+  const ini=`<span class="gm ${obDone?'d':'n'}" style="grid-column:1/2">${obDone?'Listo':'Onboarding'}</span>`;
+  const mods=d.mods.map((s,i)=>`<span class="gm ${s==='done'?'d':s==='task'?'w':s==='current'?'n':'l'}" style="grid-column:${M_WEEK[i]}" title="Módulo ${i}">M${i}</span>`).join('');
+  const ses=SESS.map((s,i)=>{const st=stepState(s.n,d);return `<span class="gm ${st==='d'?'d':st==='n'?'n':'l'} w-${s.who}" style="grid-column:${S_WEEK[i]}" title="Sesión ${s.s} · ${STAFF[s.who].n}">S${s.s}<span class="wdot"></span></span>`}).join('');
+  const gr=G_DATE.map((g,i)=>`<span class="gm dot ${i<d.gDone?'d':i===d.gDone?'n':'l'}" style="grid-column:${(i+1)*2}" title="Coaching grupal ${g}"></span>`).join('');
+  let col=1;const months=MONTHS.map(m=>{const x=`<span style="grid-column:${col}/span ${m[1]}">${m[0]}</span>`;col+=m[1];return x}).join('');
+  const ns=nextSession(d);const nsReq=ns?reqList(ns,d):[];const nsOk=nsReq.every(r=>r.ok);
+  const taskLate=d.mods.indexOf('task');
+  return `<div class="scrollx"><div class="gantt">
+    <div></div><div class="gmonths">${months}</div>
+    ${row('Inicio',`${c.obDone} de 6 pasos de onboarding`,obDone?okc:`<span class="chip info">En curso</span>`,ini)}
+    ${row('Módulos',`${c.vids} de 9 vistos`,taskLate>=0?`<span class="chip warn">Falta tarea M${taskLate}</span>`:okc,mods)}
+    ${row('Sesiones de Terapia',`${c.sDone} de 10 sesiones`,ns&&!nsOk?`<span class="chip warn">${ico('lock',12)} S${ns.s}: requisito pendiente</span>`:okc,ses)}
+    ${row('Coaching Grupal',`${d.gDone} de 9 · cada 15 días`,okc,gr)}
+  </div></div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>Hecho</span><span><i style="background:var(--hi);border-color:var(--hi)"></i>Lo siguiente</span><span><i style="background:var(--warn-soft);border-color:var(--warn)"></i>Video visto, falta la tarea</span><span><i style="border-style:dashed;border-color:var(--muted)"></i>Por venir</span>
+  <span><i class="w w-emilia"></i>Emilia</span><span><i class="w w-psico"></i>Psicóloga</span><span><i class="w w-diego"></i>Diego</span></div>
+  <p class="small muted" style="margin-top:10px">Ritmo de referencia: S1 a S4 una por semana; S5 a S10 cada 15 días aprox., según criterio clínico.</p>`;
+}
+function agendaList(d){
+  const ns=nextSession(d);
+  const items=[];
+  if(ns){const ok=reqList(ns,d).every(r=>r.ok);items.push({d:'S'+ns.s,sm:ok?'lista para agendar':'por agendar',t:`Sesión ${ns.s} · ${ns.t}`,s:'Con '+STAFF[ns.who].n,who:ns.who});}
+  const gi=d.gDone;if(gi<9)items.push({d:G_DATE[gi],sm:d.gToday?'hoy · 7:00 pm':'7:00 pm',t:'Coaching grupal',s:G_TOPIC[gi]});
+  return `<div class="list" style="margin-top:12px">${items.map(u=>`<div class="li"><span class="d">${u.d}<small>${u.sm}</small></span><div class="tx"><b>${u.t}</b><span>${u.s}</span></div>${u.who?whochip(u.who):''}</div>`).join('')}</div>`;
+}
+
+/* ---------- screens ---------- */
+function inicio(){
+  const d=D(),w=W();const [t0,...rest]=d.todo;
+  const ns=nextSession(d);const nsReq=ns?reqList(ns,d):[];
+  return `<section class="hero">
+    <div class="ph"><div><p class="eyebrow">${BLOCKS[STEPS[d.cur-1].b][0]} · Semana ${d.week}</p><h1>${w.n}, están en el paso ${d.cur} de 14.</h1><p class="lead">${d.msg}</p></div>${statusChip(d)}</div>
+    ${pathBar(d)}
+    <div class="mission"><span class="k">La página de hoy</span><b>${t0.t}</b><span class="why">${t0.why}</span>
+      ${ns&&S.phase!=='day1'?`<div><span class="small" style="color:#8E9AC0;font-weight:700">Para entrar a la Sesión ${ns.s} con ${STAFF[ns.who].n}:</span>${reqChips(nsReq)}</div>`:''}
+      <button class="btn" ${go(t0.go)}>Empezar · ${t0.time} ${ico('arrow',16)}</button></div>
+  </section>
+  <section class="card"><div class="ch"><div><h2>Las cuatro áreas de su proceso</h2><p class="muted small">Avanzan a la vez. La línea dorada es hoy: lo que está a su izquierda ya debería estar hecho.</p></div>${statusChip(d)}</div>${gantt(d)}</section>
+  <div class="grid2e">
+    <section class="card"><h2 style="margin-bottom:14px">También pueden</h2><div class="list">${rest.map(t=>`<div class="li"><span class="ico info">${ico(t.k)}</span><div class="tx"><b>${t.t}</b><span>${t.why}</span></div><button class="btn soft sm" ${go(t.go)}>${t.time}</button></div>`).join('')}</div></section>
+    <section class="card agenda"><h2>Lo que viene</h2>${agendaList(d)}</section>
+  </div>
+  ${pager()}`;
+}
+function camino(){
+  const d=D(),w=W();let lastB=-1;
+  const rows=STEPS.map(s=>{
+    const st=stepState(s.n,d);
+    const head=s.b!==lastB?`<div class="blockhead">${BLOCKS[s.b][0]}</div>`:'';lastB=s.b;
+    const rl=reqList(s,d);
+    const mine=s.indiv?(s.indiv===S.who?`<span class="chip pair">${ico('user',12)} Tu sesión individual</span>`:`<span class="chip">Sesión individual de ${WHO[s.indiv].n}</span>`):'';
+    return `${head}<div class="vstep ${st}"><span class="dotn">${st==='d'?ico('check',16):s.n}</span><div class="body">
+      <div class="top3"><b>${s.s?'S'+s.s+' · ':''}${s.t}</b>${whochip(s.who)}${mine}${st==='d'?`<span class="chip ok">Hecho</span>`:st==='n'?`<span class="chip warn">Ahora</span>`:''}</div>
+      <span class="small muted">${s.q}${s.s&&st==='d'?' · '+S_DATE[s.s-1]:''}</span>
+      ${rl.length?`<div><span class="small" style="font-weight:700">Requisito para entrar:</span> ${reqChips(st==='d'?rl.map(r=>({...r,ok:true,label:r.label.replace(' · falta la tarea','')})):rl)}</div>`:`<span class="small muted">Requisito para entrar: ninguno</span>`}
+    </div></div>`;
+  }).join('');
+  const c=counts(d);
+  return `<div class="ph"><div><p class="eyebrow">El camino completo</p><h1>Los 14 pasos de su proceso</h1><p class="lead">Cada paso tiene un responsable y un requisito para entrar. No avanzan al siguiente hasta cumplirlo, pero el avance clínico lo marca Emilia en sesión, no el módulo visto.</p></div><span class="chip info">${c.stepsDone} de 14 completados</span></div>
+  <section class="card"><div class="stats">
+    <div class="stat"><b>${c.stepsDone}/14</b><span>Pasos</span></div>
+    <div class="stat"><b>${c.sDone}/10</b><span>Sesiones de terapia</span></div>
+    <div class="stat"><b>${c.vids}/9</b><span>Módulos vistos</span></div>
+    <div class="stat"><b>${d.gDone}/9</b><span>Coaching grupal</span></div>
+  </div></section>
+  <section class="card">${rows}</section>
+  ${pager()}`;
+}
+function bienvenida(){
+  const d=D();
+  const st=s=>s==='done'?`<span class="ico ok">${ico('check')}</span>`:s==='current'?`<span class="ico warn">${ico('pen')}</span>`:s==='locked'?`<span class="ico">${ico('lock')}</span>`:`<span class="ico">${ico('clock')}</span>`;
+  const goes=['contrato','bienvenida','bienvenida','bienvenida','radiografia','radiografia'];
+  return `<div class="ph"><div><p class="eyebrow">Pasos 2 y 3 · Inicio</p><h1>Bienvenidos, Pedro y Andrea</h1><p class="lead">Acaban de dar un paso importante. Aquí siempre verán dónde están, qué sigue y qué pueden hacer hoy.</p></div></div>
+  <div class="grid2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="video" role="img" aria-label="Video de bienvenida"><div class="faces"><span>E</span><span>D</span></div><span class="play">${d.ob[3]==='locked'?ico('lock',24):ico('play',26)}</span><div class="cap"><span>Bienvenida · Emilia y Diego</span><span>6:40</span></div></div>
+      ${d.ob[3]==='locked'?`<div class="alert info">${ico('lock')}<div>El video de bienvenida y la Radiografía Inicial se abren al completar el onboarding (paso 2).</div></div>`:`<p class="muted small">En el video: los 14 pasos, con quién es cada sesión y cómo usar esta app.</p>`}
+    </div>
+    <section class="card"><div class="ch"><h2>Onboarding y bienvenida</h2><span class="chip ${d.ob.every(x=>x==='done')?'ok':'info'}">${d.ob.filter(x=>x==='done').length} de 6</span></div>
+      <div class="list">${OB.map((o,i)=>`<div class="li">${st(d.ob[i])}<div class="tx"><b>${o[0]}</b><span>${o[1]}</span></div>${d.ob[i]==='current'||d.ob[i]==='todo'?`<button class="btn ${d.ob[i]==='current'?'':'ghost'} sm" ${go(goes[i])}>Ir</button>`:''}</div>`).join('')}</div>
+      <p class="small muted" style="margin-top:12px">Del lado del equipo: accesos, creación del grupo de WhatsApp y envío de cuestionarios.</p>
+    </section>
+  </div>
+  <section class="card"><p class="quote">«Trabajamos con mucha estructura, pero no se trata de que ustedes se adapten a ella. Todos nuestros recursos se adaptan a su caso. Esto no es una receta.»<cite>Emilia y Diego</cite></p></section>
+  <section class="card"><div class="ch"><h2>Cómo funciona su proceso</h2><span class="muted small">14 pasos · 5 bloques</span></div>
+    <div class="grid2e">
+      <div class="list">
+        <div class="li"><span class="ico info">${ico('heart')}</span><div class="tx"><b>10 sesiones de terapia</b><span>3 con Emilia (S1, S5, S8), 6 con la psicóloga (S2, S3, S6, S7, S9, S10) y 1 con Diego (S4). S2 y S3 son individuales.</span></div></div>
+        <div class="li"><span class="ico info">${ico('book')}</span><div class="tx"><b>9 módulos en video (0 al 8)</b><span>Cada módulo es el requisito de una sesión. Traen una tarea para llevar la teoría a su relación.</span></div></div>
+      </div>
+      <div class="list">
+        <div class="li"><span class="ico info">${ico('route')}</span><div class="tx"><b>Inicio → Ciclo 1 → Ciclo 2 → Ciclo 3 → Cierre</b><span>S1 a S4: una sesión por semana. S5 a S10: cada 15 días aprox., según criterio clínico.</span></div></div>
+        <div class="li"><span class="ico info">${ico('users')}</span><div class="tx"><b>Coaching Grupal</b><span>Cada 15 días con otras parejas. Grabación y recursos descargables.</span></div></div>
+      </div>
+    </div></section>
+  ${pager()}`;
+}
+function contrato(){
+  const d=D(),signed=d.ob[0]==='done';
+  const pts=[['Qué incluye','10 sesiones de terapia (3 con Emilia, 6 con la psicóloga, 1 con Diego), 9 módulos en video y coaching grupal cada 15 días.'],['Cómo avanzan','14 pasos. Cada uno tiene un requisito para entrar; el avance clínico lo marca Emilia en sesión.'],['Confidencialidad','Lo que comparten lo ve solo el equipo. Sus respuestas individuales no las ve su pareja.'],['Su compromiso','Ver los módulos antes de la sesión que los requiere, entregar las tareas y llegar a sus sesiones.'],['Cambios de fecha','Pueden reprogramar una sesión con 24 horas de aviso por WhatsApp.']];
+  return `<div class="ph"><div><p class="eyebrow">Paso 2 · Onboarding</p><h1>Su contrato</h1><p class="lead">Antes de firmar, aquí está en palabras simples qué firman y por qué.</p></div>${signed?`<span class="chip ok">${ico('check',14)} Firmado por ambos</span>`:`<span class="chip warn">Pendiente de firma</span>`}</div>
+  <div class="grid2">
+    <section class="card"><h2 style="margin-bottom:14px">Lo importante, en cinco puntos</h2><div class="list">${pts.map(p=>`<div class="li"><span class="ico info">${ico('check')}</span><div class="tx"><b>${p[0]}</b><span>${p[1]}</span></div></div>`).join('')}</div></section>
+    <section class="card" style="display:flex;flex-direction:column;gap:16px"><h2>Firmas</h2>
+      <div class="list">${['pedro','andrea'].map(k=>`<div class="li"><span class="av">${WHO[k].ini}</span><div class="tx"><b>${WHO[k].full}</b><span>${signed?'Firmó el 2 sep 2026':'Pendiente'}</span></div>${signed?`<span class="chip ok">Firmado</span>`:`<span class="chip">Pendiente</span>`}</div>`).join('')}</div>
+      ${signed?`<button class="btn ghost">${ico('file')} Ver contrato firmado (PDF)</button>`:`<button class="btn">${ico('pen')} Revisar y firmar</button><p class="small muted">Cada uno firma desde su propio acceso.</p>`}
+    </section>
+  </div>
+  ${pager()}`;
+}
+function radiografia(){
+  const d=D(),w=W();
+  const secs=[['Sobre ti','Individual'],['Tu historia de pareja','Individual'],['Lo que les trae aquí','En pareja'],['Sus metas','En pareja']];
+  return `<div class="ph"><div><p class="eyebrow">Paso 3 · Requisito de la Sesión 1</p><h1>Radiografía Inicial</h1><p class="lead">No es un diagnóstico: es una foto de su punto de partida. Emilia se la devuelve en la Sesión 1, junto con las metas y lo que van a trabajar.</p></div>${d.rad?`<span class="chip ok">${ico('check',14)} Enviada el 5 sep</span>`:`<span class="chip warn">${ico('lock',14)} Se abre al completar el onboarding</span>`}</div>
+  <div class="steps">${secs.map((s,i)=>`<span class="step ${i===2?'on':d.rad?'ok':''}"><span class="n">${d.rad&&i!==2?'✓':i+1}</span>${s[0]} <span class="chip ${s[1]==='En pareja'?'pair':''}" style="padding:1px 8px">${s[1]}</span></span>`).join('')}</div>
+  <div class="grid2">
+    <section class="card qblock">
+      <div class="ch" style="margin:0"><h2>3 · Lo que les trae aquí</h2><span class="chip pair">${ico('users',14)} Respóndanla juntos</span></div>
+      <div class="field"><label for="q1">¿Qué les gustaría que fuera distinto al terminar el proceso?</label>
+        <textarea class="input" id="q1">Poder hablar de decisiones de trabajo sin terminar discutiendo. Que Andrea sienta que la escucho y que Pedro sienta que lo entiendo.</textarea></div>
+      <div class="field"><label>Hoy, ¿qué tan conectados se sienten? <span class="muted">(1 = nada · 10 = mucho)</span></label>
+        <div class="scale">${Array.from({length:10},(_,i)=>`<span class="${i===4?'on':''}">${i+1}</span>`).join('')}</div></div>
+      <div class="field"><label>¿En qué temas quieren trabajar?</label>
+        <div class="tags">${['Comunicación','Acuerdos','Trabajo y pareja','Valoración','Intimidad','Familia','Dinero'].map((t,i)=>`<span class="${i<4?'on':''}">${t}</span>`).join('')}</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Enviar sección</button><button class="btn ghost">Guardar borrador</button></div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="alert info">${ico('users')}<div><b>Sección en pareja.</b> ${w.other} recibió el mismo enlace por email. Lo que envíen queda en la ficha de los dos.</div></div>
+      <div class="alert info">${ico('lock')}<div><b>Sus secciones individuales son privadas.</b> Solo las lee el equipo; ${w.other} no puede verlas.</div></div>
+    </div>
+  </div>
+  ${pager()}`;
+}
+function modulos(){
+  const d=D();
+  let f=S.mod;if(f===null||f===undefined){f=d.mods.findIndex(x=>x==='task');if(f<0)f=d.mods.findIndex(x=>x==='current');if(f<0)f=0;}
+  const st=d.mods[f];
+  const icon=s=>s==='done'?`<span class="ico ok">${ico('check')}</span>`:s==='task'?`<span class="ico warn">${ico('pen')}</span>`:s==='current'?`<span class="ico info">${ico('play')}</span>`:`<span class="ico">${ico('lock')}</span>`;
+  const lbl=(s,i)=>(s==='done'?'Visto · tarea entregada':s==='task'?'Visto · falta la tarea':s==='current'?'Disponible':'Se abre al ver el anterior')+' · para '+MOD_FOR[i];
+  const ans=S.who==='pedro'?'Cuando discutimos cierro el tema rápido, con datos. Ella lo vive como que no me importa lo que siente.':'Respondo antes de pensarlo y después me arrepiento. Siento que mis ideas no cuentan.';
+  const forS=MOD_FOR[f];
+  const banner=st==='task'||st==='current'?`<div class="alert">${ico('info')}<div><b>Este módulo es requisito de la ${forS.includes('y')?'Sesión 4 y de la 5':'Sesión '+forS.slice(1)}.</b>${f>=1&&f<=3?' Los Módulos 1 a 3 son obligatorios para entrar a la Sesión 5 con Emilia.':''}</div></div>`:'';
+  const task=st==='locked'?`<div class="alert info">${ico('lock')}<div>Este módulo se abre cuando vean el anterior.</div></div>`:`
+    <div class="ch" style="margin:0"><h2>Tarea del módulo</h2><div class="tabs"><button data-tab="online" aria-pressed="${S.taskTab==='online'}">Completar en línea</button><button data-tab="pdf" aria-pressed="${S.taskTab==='pdf'}">Descargar PDF y subir</button></div></div>
+    ${banner}
+    ${S.taskTab==='online'?`
+    <div class="field"><label for="t1">1. ¿Cómo aparece este tema en su última discusión?</label><span class="hint">Individual · solo lo lee el equipo</span><textarea class="input" id="t1">${ans}</textarea></div>
+    <div class="field"><label>2. ¿Qué tanto te identificas con lo que viste? <span class="muted">(1 = poco · 5 = mucho)</span></label><div class="scale">${[1,2,3,4,5].map(n=>`<span class="${n===(S.who==='pedro'?4:5)?'on':''}">${n}</span>`).join('')}</div></div>
+    <div class="field"><label for="t3">3. Escriban juntos una cosa que quieren llevar a su próxima sesión</label><span class="chip pair" style="align-self:flex-start">${ico('users',13)} En pareja · les llega por email a los dos</span><textarea class="input" id="t3" placeholder="Escríbanla juntos…"></textarea></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">${ico('check',16)} Entregar tarea</button><button class="btn ghost">Guardar borrador</button></div>`
+    :`<div class="drop">${ico('upload',26)}<b style="color:var(--ink)">Arrastren aquí su tarea completada</b><span class="small">PDF, foto o escaneo · hasta 20 MB</span><button class="btn ghost sm">Elegir archivo</button></div>
+    <button class="btn soft" style="align-self:flex-start">${ico('dl',16)} Descargar la tarea en PDF</button>
+    <p class="small muted">Recomendamos la versión en línea: así el equipo la tiene lista antes de la sesión.</p>`}`;
+  return `<div class="ph"><div><p class="eyebrow">Módulos en video · 0 al 8</p><h1>Módulos</h1><p class="lead">Cada módulo prepara una sesión. Véanlo antes de la sesión que lo requiere; si quieren adelantarse, también pueden.</p></div><span class="chip info">${d.mods.filter(x=>x==='done'||x==='task').length} de 9 vistos</span></div>
+  <div class="split">
+    <section class="card"><div class="list modlist">${MODS.map((m,i)=>`<div class="li ${i===f?'on':''}" data-mod="${i}" role="button" tabindex="0">${icon(d.mods[i])}<div class="tx"><b>${i}. ${m}</b><span>${lbl(d.mods[i],i)}</span></div></div>`).join('')}</div>
+      <p class="small muted" style="margin-top:10px">Títulos de los módulos 1 a 8 provisionales.</p></section>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div class="video" role="img" aria-label="Video del módulo ${f}"><span class="play">${st==='locked'?ico('lock',24):ico('play',26)}</span><div class="cap"><span>Módulo ${f} · ${MODS[f]}</span><span>${MOD_MIN[f]} min</span></div></div>
+      <section class="card qblock">${task}</section>
+    </div>
+  </div>
+  ${pager()}`;
+}
+function terapia(){
+  const d=D();let lastB=-1;
+  const rows=SESS.map((s,i)=>{
+    const st=stepState(s.n,d);
+    const head=s.b!==lastB?`<div class="blockhead">${BLOCKS[s.b][0]}</div>`:'';lastB=s.b;
+    const rl=reqList(s,d);const ok=rl.every(r=>r.ok);
+    const mine=s.indiv?(s.indiv===S.who?`<span class="chip pair">${ico('user',12)} Tu sesión individual</span>`:`<span class="chip">Individual · ${WHO[s.indiv].n}</span>`):'';
+    const when=st==='d'?S_DATE[i]:st==='n'?(ok?'Lista para agendar':'Por agendar · al cumplir el requisito'):'Semana '+S_WEEK[i]+' aprox.';
+    return `${head}<div class="sessrow ${st==='d'?'done':st==='n'?'next':''}"><span class="n">S${s.s}</span><div class="tx">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>${s.t}</b>${whochip(s.who)}${mine}${st==='d'?`<span class="chip ok">Hecha</span>`:st==='n'?`<span class="chip warn">Siguiente</span>`:''}</div>
+      <span class="small muted">${ico('clock',14)} ${when}</span>
+      ${st==='n'?`<span class="small" style="font-weight:700">Qué veremos</span><ul class="agendaitems"><li>${s.q}</li></ul>`:''}
+      ${rl.length&&st!=='d'?`<div><span class="small" style="font-weight:700">Requisito para entrar</span>${reqChips(rl)}</div>`:''}
+      ${st==='n'?`<button class="btn sm" style="align-self:flex-start" ${ok?'':'disabled'}>${ico('cal',15)} Agendar con ${STAFF[s.who].n}</button>`:''}
+    </div></div>`;
+  }).join('');
+  const c=counts(d);
+  return `<div class="ph"><div><p class="eyebrow">Sesiones de Terapia</p><h1>Sus 10 sesiones</h1><p class="lead">3 con Emilia, 6 con la psicóloga y 1 con Diego. Para entrar a cada sesión hay un módulo que ver antes.</p></div><span class="chip info">${c.sDone} de 10 hechas</span></div>
+  <div class="grid2">
+    <section class="card"><div style="display:flex;flex-direction:column;gap:12px">${rows}</div></section>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <section class="card"><h3 style="margin-bottom:10px">Ritmo entre sesiones</h3><div class="list">
+        <div class="li"><div class="tx"><b>S1 a S4</b><span>Una sesión por semana</span></div></div>
+        <div class="li"><div class="tx"><b>S5 a S10</b><span>Cada 15 días aprox., según criterio clínico. Es una referencia, no un plazo: si necesitan una sesión antes, la pueden pedir.</span></div></div></div></section>
+      <section class="card"><h3 style="margin-bottom:10px">Quién los acompaña</h3><div class="list">
+        <div class="li">${whochip('emilia')}<div class="tx"><span>S1, S5 y S8 · marca el avance clínico</span></div></div>
+        <div class="li">${whochip('psico')}<div class="tx"><span>S2, S3, S6, S7, S9 y S10</span></div></div>
+        <div class="li">${whochip('diego')}<div class="tx"><span>S4 · DISC</span></div></div></div></section>
+      <section class="card"><h3 style="margin-bottom:10px">¿Necesitan cambiar una fecha?</h3><p class="muted">Avísenle a Yasna por el grupo de WhatsApp con 24 horas de anticipación.</p></section>
+    </div>
+  </div>
+  ${pager()}`;
+}
+function coaching(){
+  const d=D();
+  const rows=G_DATE.map((g,i)=>{
+    const st=i<d.gDone?'done':i===d.gDone?'next':'';
+    const res=st==='done'?`<div class="res">${ico('file',18)}<div class="tx"><b>Guía: ${G_TOPIC[i]}</b><span class="muted">PDF · ${(0.8+i*.15).toFixed(1)} MB</span></div><button class="btn ghost sm">${ico('dl',14)} Descargar recurso</button></div>`:'';
+    return `<div class="li" style="align-items:flex-start;flex-wrap:wrap"><span class="ico ${st==='done'?'ok':st==='next'?'info':''}">${ico(st==='done'?'check':'users')}</span>
+      <div class="tx" style="display:flex;flex-direction:column;gap:8px;min-width:220px"><div><b>${g} · ${G_TOPIC[i]}</b><span>${st==='done'?'Grabación y recurso disponibles':st==='next'?(d.gToday?'Hoy · 7:00 pm · enlace en el grupo de WhatsApp':'Próximo · 7:00 pm'):'Programado · 7:00 pm'}</span></div>${res}</div>
+      ${st==='done'?`<div class="acts"><button class="btn soft sm">${ico('play',13)} Ver grabación</button></div>`:''}</div>`;
+  }).join('');
+  return `<div class="ph"><div><p class="eyebrow">Coaching Grupal</p><h1>Coaching Grupal</h1><p class="lead">Cada 15 días, en línea, con otras parejas. Después de cada sesión quedan la grabación y un recurso para descargar.</p></div><span class="chip info">${d.gDone} de 9 hechos</span></div>
+  <div class="grid2">
+    <section class="card"><div class="ch"><h2>Fechas</h2><span class="muted small">Cada 15 días · 7:00 pm</span></div><div class="list">${rows}</div></section>
+    <section class="card qblock" style="align-self:start"><h2>¿Tienen una pregunta para el próximo coaching?</h2>
+      <div class="field"><label for="gq">Su pregunta o el tema que quieren que tratemos</label><textarea class="input" id="gq">¿Cómo pedir una pausa sin que la otra persona lo sienta como rechazo?</textarea><span class="hint">La leemos antes del coaching del ${G_DATE[Math.min(d.gDone,8)]}. Puede ser anónima.</span></div>
+      <button class="btn" style="align-self:flex-start">Enviar pregunta</button></section>
+  </div>
+  ${pager()}`;
+}
+function equipo(){
+  const rows=[['Pedro y Andrea','Paso 9 · Ciclo 2','S5 · Emilia · por agendar','Falta tarea M3 y Módulo 4','warn'],['Laura y Tomás','Paso 12 · Ciclo 3','S8 · Emilia · 16 oct','Al día','ok'],['Carmen y Raúl','Paso 3 · Inicio','S1 · Emilia · por agendar','Radiografía en pareja sin enviar','warn'],['Mónica V.','Individual · 2 meses','23 oct','Al día','ok'],['Sofía y Martín','Intensivo · 3 días','14 nov','Contrato sin firmar','crit']];
+  return `<div class="ph"><div><p class="eyebrow">Back office · Emilia, psicóloga, Diego y Yasna</p><h1>Vista del equipo</h1><p class="lead">Quién va al día, a quién le falta un requisito y qué preparar para cada sesión.</p></div><span class="chip info">5 procesos activos</span></div>
+  <section class="card"><div class="ch"><h2>Procesos activos</h2></div><div class="scrollx"><table>
+    <thead><tr><th>Cliente</th><th>Dónde están</th><th>Próxima sesión</th><th>Estado</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td class="num">${r[1]}</td><td class="num">${r[2]}</td><td><span class="chip ${r[4]}">${r[3]}</span></td></tr>`).join('')}</tbody></table></div></section>
+  <div class="grid2e">
+    <section class="card"><div class="ch"><h2>Seguimiento de Yasna</h2><span class="chip warn">3 abiertos</span></div><div class="list">
+      <div class="li"><span class="ico warn">${ico('bell')}</span><div class="tx"><b>Pedro y Andrea · requisito de S5</b><span>Recordatorio enviado hoy 9:00: tarea del Módulo 3 y Módulo 4. Luego, agendar con Emilia.</span></div></div>
+      <div class="li"><span class="ico warn">${ico('users')}</span><div class="tx"><b>Carmen y Raúl · Radiografía en pareja</b><span>Reenviar el enlace a los dos; sin ella no pueden entrar a la S1</span></div></div>
+      <div class="li"><span class="ico warn">${ico('pen')}</span><div class="tx"><b>Sofía y Martín · contrato</b><span>Llamar hoy · el intensivo empieza en un mes</span></div></div>
+    </div></section>
+    <section class="card"><div class="ch"><h2>Informe pre-sesión</h2>${whochip('emilia')}</div><p class="small muted" style="margin-bottom:10px">Pedro y Andrea · S5 · Definir el ciclo negativo</p><div class="list">
+      <div class="li"><div class="tx"><b>Metas (S1)</b><span>Decidir temas de trabajo sin discutir · que Andrea se sienta valorada · que Pedro se sienta entendido</span></div></div>
+      <div class="li"><div class="tx"><b>Historias de vida (S2, S3)</b><span>Resumen de la psicóloga disponible para Emilia</span></div></div>
+      <div class="li"><div class="tx"><b>DISC (S4 · Diego)</b><span>Pedro: analítico. Andrea: creativa e impulsiva.</span></div></div>
+    </div></section>
+  </div>
+  ${pager()}`;
+}
+function login(){
+  return `<div class="app"><div class="login"><div class="lbox">
+    <div class="art"><div><p class="eyebrow" style="color:#F6C35B">Su ruta de pareja</p><h2>14 pasos. Siempre sabrán dónde están y qué sigue.</h2></div>
+      <svg viewBox="0 0 300 90" style="width:100%;max-width:340px" aria-hidden="true"><path d="M10 70 C70 70 70 20 130 20 S190 70 250 50 S290 20 295 20" fill="none" stroke="#43D3C7" stroke-width="4" stroke-dasharray="2 9" stroke-linecap="round"/><circle cx="10" cy="70" r="7" fill="#43D3C7"/><circle cx="130" cy="20" r="7" fill="#F6C35B"/><circle cx="250" cy="50" r="7" fill="#0E1A3A" stroke="#8E9AC0" stroke-width="3"/></svg></div>
+    <form id="lf" novalidate>
+      <div><h2>Entra a tu espacio</h2><p class="muted small" style="margin-top:6px">Tu pareja tiene su propio acceso. Lo que escribes en tus tareas individuales lo ve solo el equipo.</p></div>
+      <div class="whopick">${['pedro','andrea'].map(k=>`<button type="button" data-who="${k}" aria-pressed="${S.who===k}"><span class="av">${WHO[k].ini}</span><span><b>${WHO[k].n}</b><br><span class="small muted">Ejemplo</span></span></button>`).join('')}</div>
+      <div class="field"><label for="em">Correo</label><input class="input" id="em" type="email" value="${S.who}@ejemplo.com"></div>
+      <div class="field"><label for="pw">Contraseña</label><input class="input" id="pw" type="password" value="contraseña"></div>
+      <button class="btn" type="submit" style="justify-content:center">Entrar ${ico('arrow',16)}</button>
+      <p class="small muted">¿Primera vez? Usa el enlace que te enviamos por email al confirmar tu proceso.</p>
+    </form></div></div></div>`;
+}
+
+/* ---------- render ---------- */
+const SCREENS={inicio,camino,bienvenida,contrato,radiografia,modulos,terapia,coaching,equipo};
+const root=document.getElementById('root');
+function render(){
+  if(!SCREENS[S.screen]&&S.screen!=='login')S.screen='inicio';
+  root.innerHTML=S.screen==='login'?login():shell(SCREENS[S.screen]());
+  for(const [id,key] of [['segPh','phase'],['segW','who']])
+    document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S[key]));
+  save();
+}
+document.addEventListener('click',e=>{
+  const seg=e.target.closest('.seg button');
+  if(seg){const k={segPh:'phase',segW:'who'}[seg.parentElement.id];S[k]=seg.dataset.v;S.mod=null;render();return;}
+  if(e.target.closest('#toLogin')){S.screen='login';render();window.scrollTo(0,0);return;}
+  if(e.target.closest('#toTeam')){S.screen='equipo';render();window.scrollTo(0,0);return;}
+  const g=e.target.closest('[data-go]');
+  if(g){S.screen=g.dataset.go;S.mod=null;render();window.scrollTo(0,0);return;}
+  const m=e.target.closest('[data-mod]');
+  if(m){S.mod=+m.dataset.mod;render();return;}
+  const t=e.target.closest('[data-tab]');
+  if(t){S.taskTab=t.dataset.tab;render();return;}
+  const w=e.target.closest('[data-who]');
+  if(w){S.who=w.dataset.who;render();return;}
+});
+document.addEventListener('keydown',e=>{const m=e.target.closest&&e.target.closest('[data-mod]');if(m&&(e.key==='Enter'||e.key===' ')){e.preventDefault();S.mod=+m.dataset.mod;render();}});
+document.addEventListener('submit',e=>{e.preventDefault();S.screen='inicio';render();window.scrollTo(0,0);});
+render();
+</script>

@@ -1,0 +1,156 @@
+<title>Fase 2 · Motor de servicios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Manrope:wght@400;500;600;700&display=swap">
+<style>
+:root{--bg:#F1F4FA;--surface:#FFFFFF;--ink:#0E1A3A;--muted:#58658A;--line:#DEE4F0;--accent:#0C8F8C;--accent-soft:#DDF3F1;--hi:#E8A21E;--hi-soft:#FCEFD8;--navy:#0E1A3A}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){color-scheme:dark;--bg:#071027;--surface:#0F1B3B;--ink:#E8EEFF;--muted:#93A0C6;--line:#21305C;--accent:#43D3C7;--accent-soft:#103A44;--hi:#F6C35B;--hi-soft:#3A2D10}}
+:root[data-theme="dark"]{color-scheme:dark;--bg:#071027;--surface:#0F1B3B;--ink:#E8EEFF;--muted:#93A0C6;--line:#21305C;--accent:#43D3C7;--accent-soft:#103A44;--hi:#F6C35B;--hi-soft:#3A2D10}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:"Manrope",system-ui,sans-serif;font-size:15.5px;line-height:1.6;padding-inline:16px;padding-block:0 64px}
+.wrap{max-width:980px;margin:0 auto}
+header{background:var(--navy);color:#E8EEFF;border-radius:0 0 24px 24px;padding:40px 32px 34px;margin:0 -16px 32px;background-image:radial-gradient(90% 120% at 100% 0%,rgba(67,211,199,.28),transparent 55%)}
+header .in{max-width:980px;margin:0 auto}
+.eyebrow{font-size:12px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;color:#8E9AC0;margin:0 0 8px}
+h1,h2,h3{font-family:"Bricolage Grotesque",system-ui,sans-serif;letter-spacing:-.02em;text-wrap:balance;margin:0}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.12;color:#fff}
+header p.lead{color:#B9C3E2;max-width:64ch;margin:12px 0 0;font-size:17px}
+h2{font-size:24px;margin:44px 0 12px}
+h3{font-size:17px;margin:0 0 6px}
+p{margin:0 0 12px;max-width:68ch}
+.muted{color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:rgba(255,255,255,.1);color:#E8EEFF}
+.chip b{color:#5FE0D4}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media(max-width:820px){.grid{grid-template-columns:1fr}}
+.flow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:stretch}
+@media(max-width:820px){.flow{grid-template-columns:1fr 1fr}}
+.flow div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px}
+.flow div b{display:block;font-family:"Bricolage Grotesque",sans-serif;font-size:16px}
+.flow div span{font-size:13.5px;color:var(--muted)}
+.flow div.hl{border-color:var(--accent);background:var(--accent-soft)}
+.scrollx{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14.5px;min-width:620px}
+th{text-align:left;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:0 12px 10px}
+td{padding:11px 12px;border-top:1px solid var(--line);vertical-align:top}
+td code,p code,li code{font-size:13px;background:var(--accent-soft);color:var(--accent);padding:1px 6px;border-radius:6px}
+.ok{color:var(--accent);font-weight:700}
+.no{color:#C23A4E;font-weight:700}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .no{color:#F27A8B}}
+:root[data-theme="dark"] .no{color:#F27A8B}
+ul{margin:0;padding-left:20px}
+li{margin:4px 0}
+.mer{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;overflow-x:auto}
+.pending{background:var(--hi-soft);border:1px solid color-mix(in srgb,var(--hi) 40%,transparent);border-radius:18px;padding:20px 22px}
+.tests{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media(max-width:820px){.tests{grid-template-columns:1fr}}
+.tests div{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px}
+.tests b{font-family:"Bricolage Grotesque",sans-serif;font-size:28px;display:block;line-height:1;color:var(--accent);font-variant-numeric:tabular-nums}
+</style>
+
+<header><div class="in">
+  <p class="eyebrow">Fase 2 · Para aprobar</p>
+  <h1>Un motor para todos los servicios. El proceso de $3.000 es la primera plantilla.</h1>
+  <p class="lead">La base de datos no tiene el proceso de pareja "programado": lo tiene configurado como datos. Así el admin podrá crear y editar servicios (pasos, videos, formularios, sesiones, requisitos) sin tocar código.</p>
+  <div class="chips"><span class="chip"><b>13</b> migraciones</span><span class="chip"><b>3</b> servicios configurados</span><span class="chip"><b>37/37</b> tests pasan</span><span class="chip">Corre en Supabase local (Docker)</span></div>
+</div></header>
+
+<div class="wrap">
+
+<h2>Cómo funciona, en cuatro piezas</h2>
+<div class="flow">
+  <div><b>Servicio</b><span>Lo comercial: nombre, tipo (pareja o individual), precio.</span></div>
+  <div class="hl"><b>Versión</b><span>El diseño del proceso. Se edita como borrador y se publica. Una versión publicada no cambia.</span></div>
+  <div><b>Inscripción</b><span>Al vender, se copia la versión para esa pareja, con su equipo y sus fechas.</span></div>
+  <div><b>Progreso</b><span>Todo lo que hacen: videos vistos, respuestas, firmas, sesiones. Nada se borra.</span></div>
+</div>
+<p class="muted" style="margin-top:14px">Por qué la copia: el equipo puede adaptar el proceso de una pareja (añadir, mover u ocultar algo) sin cambiar la plantilla, y si el admin publica una versión nueva, las parejas en curso siguen con la suya.</p>
+
+<h2>El proceso de $3.000, traducido al motor</h2>
+<div class="card scrollx"><table>
+  <thead><tr><th>En el documento de Emilia</th><th>En el motor (configurable)</th></tr></thead>
+  <tbody>
+    <tr><td>5 bloques: Inicio, Ciclo 1, Ciclo 2, Ciclo 3, Cierre</td><td>Bloques de la versión (los nombres se editan)</td></tr>
+    <tr><td>Los 14 pasos, en orden</td><td>Pasos del camino; cada uno apunta a una actividad</td></tr>
+    <tr><td>"Quién": Emilia, psicóloga, Diego, equipo</td><td>Rol responsable de la actividad; en cada pareja se asigna la persona concreta</td></tr>
+    <tr><td>"Requisito para entrar"</td><td>Requisitos: qué hace falta, si es obligatorio y si <b>bloquea</b> o solo <b>recuerda</b></td></tr>
+    <tr><td>Módulos 0–8 con su tarea</td><td>Actividades de video con tarea; se cumplen al "ver" o al "entregar la tarea", según el requisito</td></tr>
+    <tr><td>S2 y S3 individuales (persona 1 y 2)</td><td>Participantes de la sesión: toda la pareja, solo la persona 1 o solo la persona 2</td></tr>
+    <tr><td>Ritmo: S1–S4 semanal, S5–S10 cada 15 días</td><td>Días sugeridos entre sesiones: es una referencia y nunca bloquea</td></tr>
+    <tr><td>Entrevista y onboarding a cargo del equipo</td><td>Tareas del equipo con checklist y plazo (para Yasna)</td></tr>
+    <tr><td>Coaching grupal, grabación y recurso para descargar</td><td>Programa grupal compartido entre servicios + recursos adjuntos</td></tr>
+  </tbody></table></div>
+
+<h2>Prueba: la base de datos da el mismo estado que la maqueta</h2>
+<p>Con Pedro y Andrea cargados como en la maqueta, el motor calcula solo:</p>
+<div class="card scrollx"><table>
+  <thead><tr><th>Qué se calcula</th><th>Resultado</th></tr></thead>
+  <tbody>
+    <tr><td>Dónde están</td><td>Paso 9 de 14 · Ciclo 2 · S5 «Definir el ciclo negativo»</td></tr>
+    <tr><td>Requisitos para entrar a la S5</td><td><span class="ok">✓ Módulo 1 · obligatorio</span> · <span class="ok">✓ Módulo 2 · obligatorio</span> · <span class="no">✗ Módulo 3 · obligatorio (falta la tarea)</span> · <span class="no">✗ Módulo 4</span></td></tr>
+    <tr><td>Las 4 áreas</td><td>Inicio 4/5 · Módulos 4/9 (1 tarea pendiente) · Sesiones de Terapia 4/10 · Coaching 2/9 asistidos</td></tr>
+    <tr><td>Desde la API, con el login de Pedro</td><td>Pedro entra con su usuario y recibe solo su estado: «paso 9 · S5»</td></tr>
+  </tbody></table></div>
+
+<h2>Quién ve qué</h2>
+<div class="grid">
+  <div class="card"><h3>Pareja</h3><ul><li>Cada uno con su login.</li><li>Lo de pareja lo ven los dos.</li><li><b>Lo individual solo su autor</b>: Andrea no ve las respuestas de Pedro ni el detalle de su sesión individual.</li><li>Lo enviado no se puede editar.</li></ul></div>
+  <div class="card"><h3>Equipo clínico</h3><ul><li>Solo las parejas donde está asignado.</li><li>Notas clínicas: solo el clínico asignado y el admin.</li><li>Puede adaptar el proceso de su pareja y dispensar un requisito.</li></ul></div>
+  <div class="card"><h3>Asistente y admin</h3><ul><li>Yasna: fechas, estados, requisitos y tareas de todas las parejas, <b>sin</b> notas clínicas ni respuestas individuales.</li><li>Admin: todo, incluido crear y editar servicios.</li></ul></div>
+</div>
+
+<h2>Respaldo</h2>
+<div class="grid">
+  <div class="card"><h3>Nada se pierde</h3><p class="muted">Una respuesta enviada no se modifica: las correcciones crean una revisión. Cada cambio queda en un registro de auditoría con quién lo hizo y cuándo.</p></div>
+  <div class="card"><h3>Archivos privados</h3><p class="muted">Tareas subidas, contratos firmados y recursos van a carpetas privadas por pareja y por persona. Solo se descargan con enlaces temporales.</p></div>
+  <div class="card"><h3>Copias</h3><p class="muted">En producción: recuperación a cualquier momento (PITR) y una copia diaria de los archivos fuera de Supabase, porque los backups de la base de datos no incluyen archivos.</p></div>
+</div>
+
+<h2>Las tablas principales</h2>
+<div class="mer">
+<pre class="mermaid">
+erDiagram
+  services ||--o{ service_versions : "versiones"
+  service_versions ||--o{ service_blocks : ""
+  service_versions ||--o{ service_tracks : "áreas"
+  service_versions ||--o{ service_activities : ""
+  service_versions ||--o{ service_steps : "camino"
+  service_steps }o--|| service_activities : "definido por"
+  service_versions ||--o{ service_requirements : ""
+  client_units ||--o{ client_unit_members : "persona 1, 2"
+  client_units ||--o{ enrollments : ""
+  service_versions ||--o{ enrollments : "copiada en"
+  enrollments ||--o{ enrollment_staff : "equipo"
+  enrollments ||--o{ enrollment_steps : ""
+  enrollments ||--o{ enrollment_activities : ""
+  enrollments ||--o{ enrollment_requirements : ""
+  enrollment_activities ||--o{ activity_progress : ""
+  enrollment_activities ||--o{ form_submissions : "respuestas"
+  enrollments ||--o{ contract_signatures : ""
+  enrollment_activities ||--o{ enrollment_sessions : ""
+  enrollment_sessions ||--o{ session_notes : "solo clínico"
+  group_programs ||--o{ group_sessions : "coaching"
+  group_sessions ||--o{ resources : "descargables"
+</pre>
+</div>
+
+<h2>Verificado en local</h2>
+<div class="tests">
+  <div><b>15</b>Tests del motor: estado de la maqueta, Intensivo con el mismo motor, versiones, requisitos circulares rechazados.</div>
+  <div><b>17</b>Tests de privacidad: pareja, asistente, clínicos no asignados, anónimos.</div>
+  <div><b>5</b>Tests de archivos: carpetas por persona y recursos solo para inscritos.</div>
+</div>
+
+<h2>Decisiones pendientes</h2>
+<div class="pending"><ul>
+  <li><b>Coaching grupal:</b> ¿es parte del servicio de $3.000? Hoy está configurado como parte.</li>
+  <li><b>Duración del acceso:</b> configurada en 180 días; ¿o termina con la S10?</li>
+  <li><b>Módulos:</b> hoy la S5 exige <i>entregar la tarea</i> de los Módulos 1–3 y las demás solo <i>ver</i> el video. Se cambia por requisito.</li>
+  <li><b>Proveedores:</b> firma de contratos (en la app o DocuSign) y agenda (Calendly o propia). <span class="ok">Video: decidido, Bunny Stream</span>, con reproducción por token firmado solo para quien tiene permiso.</li>
+  <li><b>Por definir con el equipo:</b> responsables y plazos del onboarding, nombre de los bloques "Ciclo" y qué ofrecer al cerrar el proceso.</li>
+</ul></div>
+
+<p class="muted" style="margin-top:28px">Siguiente paso tras aprobar: diseñar en estilo Ruta las pantallas de admin («Crear servicio») y empezar la Fase 3 sobre esta base de datos.</p>
+</div>

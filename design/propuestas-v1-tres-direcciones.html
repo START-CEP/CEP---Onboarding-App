@@ -1,0 +1,834 @@
+<title>Propuestas App de Pareja</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400;1,6..72,500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* ---------- Demo bar + page tokens ---------- */
+:root{
+  --page:#E9EAEE; --bar:#FFFFFF; --bar-ink:#1B1D27; --bar-muted:#6A6E7E; --bar-line:#D9DBE3; --bar-on:#1B1D27; --bar-on-ink:#FFFFFF;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){color-scheme:dark;--page:#0B0C10;--bar:#14161C;--bar-ink:#ECEDF2;--bar-muted:#9497A6;--bar-line:#2A2D37;--bar-on:#ECEDF2;--bar-on-ink:#14161C;}
+}
+:root[data-theme="dark"]{color-scheme:dark;--page:#0B0C10;--bar:#14161C;--bar-ink:#ECEDF2;--bar-muted:#9497A6;--bar-line:#2A2D37;--bar-on:#ECEDF2;--bar-on-ink:#14161C;}
+
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--bar-ink);font-family:"Figtree",system-ui,-apple-system,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent,#3540E0);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+.demobar{position:relative;z-index:50;background:var(--bar);border-bottom:1px solid var(--bar-line);padding:10px 16px;display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.demobar .tag{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--bar-muted);font-weight:600}
+.demobar .grp{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--bar-line);border-radius:999px;padding:2px;gap:2px}
+.seg button{border:0;background:transparent;padding:5px 12px;border-radius:999px;font-size:13px;font-weight:600;color:var(--bar-muted);white-space:nowrap}
+.seg button[aria-pressed="true"]{background:var(--bar-on);color:var(--bar-on-ink)}
+.demobar .linkbtn{border:1px solid var(--bar-line);background:transparent;border-radius:999px;padding:5px 12px;font-size:13px;font-weight:600}
+.demobar .note{margin-left:auto;font-size:12px;color:var(--bar-muted)}
+@media(max-width:860px){.demobar .note{display:none}}
+
+/* ---------- App tokens per proposal ---------- */
+.app{
+  --bg:#F5F6FA;--surface:#FFFFFF;--surface2:#F0F1F7;--ink:#161A33;--muted:#62678A;--line:#E3E5EF;
+  --accent:#3540E0;--accent-ink:#FFFFFF;--accent-soft:#E9EBFD;--hi:#3540E0;
+  --ok:#1C8C50;--ok-soft:#E3F4EA;--warn:#B8650F;--warn-soft:#FCEEDC;--crit:#C2364A;--crit-soft:#FBE6E9;
+  --side:#FFFFFF;--side-ink:#161A33;--side-muted:#62678A;--side-active:#E9EBFD;--side-active-ink:#3540E0;--side-line:#E3E5EF;
+  --display:"Plus Jakarta Sans",system-ui,sans-serif;--body:"Plus Jakarta Sans",system-ui,sans-serif;
+  --rad:14px;--rad-s:10px;--shadow:none;
+}
+.app.pb{
+  --bg:#EEF0E8;--surface:#FBFBF7;--surface2:#E5E8DD;--ink:#2B1F2A;--muted:#6B626C;--line:#D8DACD;
+  --accent:#6B2E5C;--accent-ink:#FFFFFF;--accent-soft:#F0E3EC;--hi:#D98A4A;
+  --ok:#3F7A4E;--ok-soft:#E1ECDD;--warn:#A85A1C;--warn-soft:#F6E6D3;--crit:#A93246;--crit-soft:#F5DFE2;
+  --side:#E5E8DD;--side-ink:#2B1F2A;--side-muted:#6B626C;--side-active:#FBFBF7;--side-active-ink:#6B2E5C;--side-line:#D2D5C6;
+  --display:"Newsreader",Georgia,serif;--body:"Figtree",system-ui,sans-serif;
+  --rad:6px;--rad-s:4px;--shadow:none;
+}
+.app.pc{
+  --bg:#F1F4FA;--surface:#FFFFFF;--surface2:#E8EDF7;--ink:#0E1A3A;--muted:#58658A;--line:#DEE4F0;
+  --accent:#0C8F8C;--accent-ink:#FFFFFF;--accent-soft:#DDF3F1;--hi:#E8A21E;
+  --ok:#0C8F8C;--ok-soft:#DDF3F1;--warn:#B76A06;--warn-soft:#FCEFD8;--crit:#C23A4E;--crit-soft:#FAE3E7;
+  --side:#0E1A3A;--side-ink:#E6ECFA;--side-muted:#8E9AC0;--side-active:#1C2B57;--side-active-ink:#5FE0D4;--side-line:#1F2D57;
+  --display:"Bricolage Grotesque",system-ui,sans-serif;--body:"Manrope",system-ui,sans-serif;
+  --rad:20px;--rad-s:12px;--shadow:0 1px 2px rgba(14,26,58,.05),0 8px 24px -12px rgba(14,26,58,.14);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]) .app{color-scheme:dark;--bg:#0D0F1E;--surface:#161931;--surface2:#1E2240;--ink:#ECEEFA;--muted:#9CA1C2;--line:#292D4C;--accent:#7F87FF;--accent-ink:#0D0F1E;--accent-soft:#232859;--hi:#7F87FF;--ok:#5BCB8C;--ok-soft:#173326;--warn:#F0A55A;--warn-soft:#3A2814;--crit:#F27A8B;--crit-soft:#3D1A21;--side:#121428;--side-ink:#ECEEFA;--side-muted:#9CA1C2;--side-active:#232859;--side-active-ink:#AEB3FF;--side-line:#292D4C;}
+  :root:not([data-theme="light"]) .app.pb{--bg:#191418;--surface:#221C21;--surface2:#2B242A;--ink:#F1EAEE;--muted:#B5A8B0;--line:#3A3138;--accent:#E3A8D0;--accent-ink:#191418;--accent-soft:#3B2537;--hi:#F0AE74;--ok:#9CCB9E;--ok-soft:#22301F;--warn:#F0B27A;--warn-soft:#3A2A18;--side:#151114;--side-ink:#F1EAEE;--side-muted:#B5A8B0;--side-active:#2B242A;--side-active-ink:#E3A8D0;--side-line:#2E272D;}
+  :root:not([data-theme="light"]) .app.pc{--bg:#071027;--surface:#0F1B3B;--surface2:#16244A;--ink:#E8EEFF;--muted:#93A0C6;--line:#21305C;--accent:#43D3C7;--accent-ink:#071027;--accent-soft:#103A44;--hi:#F6C35B;--ok:#43D3C7;--ok-soft:#103A44;--warn:#F6C35B;--warn-soft:#3A2D10;--side:#050C1F;--side-ink:#E6ECFA;--side-muted:#8E9AC0;--side-active:#13224A;--side-active-ink:#5FE0D4;--side-line:#15224A;--shadow:0 8px 24px -12px rgba(0,0,0,.6);}
+}
+:root[data-theme="dark"] .app{color-scheme:dark;--bg:#0D0F1E;--surface:#161931;--surface2:#1E2240;--ink:#ECEEFA;--muted:#9CA1C2;--line:#292D4C;--accent:#7F87FF;--accent-ink:#0D0F1E;--accent-soft:#232859;--hi:#7F87FF;--ok:#5BCB8C;--ok-soft:#173326;--warn:#F0A55A;--warn-soft:#3A2814;--crit:#F27A8B;--crit-soft:#3D1A21;--side:#121428;--side-ink:#ECEEFA;--side-muted:#9CA1C2;--side-active:#232859;--side-active-ink:#AEB3FF;--side-line:#292D4C;}
+:root[data-theme="dark"] .app.pb{--bg:#191418;--surface:#221C21;--surface2:#2B242A;--ink:#F1EAEE;--muted:#B5A8B0;--line:#3A3138;--accent:#E3A8D0;--accent-ink:#191418;--accent-soft:#3B2537;--hi:#F0AE74;--ok:#9CCB9E;--ok-soft:#22301F;--warn:#F0B27A;--warn-soft:#3A2A18;--side:#151114;--side-ink:#F1EAEE;--side-muted:#B5A8B0;--side-active:#2B242A;--side-active-ink:#E3A8D0;--side-line:#2E272D;}
+:root[data-theme="dark"] .app.pc{--bg:#071027;--surface:#0F1B3B;--surface2:#16244A;--ink:#E8EEFF;--muted:#93A0C6;--line:#21305C;--accent:#43D3C7;--accent-ink:#071027;--accent-soft:#103A44;--hi:#F6C35B;--ok:#43D3C7;--ok-soft:#103A44;--warn:#F6C35B;--warn-soft:#3A2D10;--side:#050C1F;--side-ink:#E6ECFA;--side-muted:#8E9AC0;--side-active:#13224A;--side-active-ink:#5FE0D4;--side-line:#15224A;--shadow:0 8px 24px -12px rgba(0,0,0,.6);}
+
+/* ---------- Shell ---------- */
+.app{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14.5px;line-height:1.5;display:grid;grid-template-columns:252px minmax(0,1fr);min-height:100vh}
+.side{background:var(--side);color:var(--side-ink);border-right:1px solid var(--side-line);padding:22px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow:auto;align-self:start}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px 18px;font-family:var(--display);font-weight:700;font-size:19px}
+.brand .mark{width:30px;height:30px;border-radius:9px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-size:13px;letter-spacing:.02em}
+.brand small{display:block;font-family:var(--body);font-weight:500;font-size:11.5px;color:var(--side-muted)}
+.navlabel{font-size:11px;letter-spacing:.09em;text-transform:uppercase;color:var(--side-muted);padding:14px 12px 6px;font-weight:600}
+.nav{display:flex;align-items:center;gap:11px;width:100%;border:0;background:transparent;text-align:left;padding:10px 12px;border-radius:var(--rad-s);color:var(--side-ink);font-weight:500;font-size:14.5px}
+.nav:hover{background:var(--side-active)}
+.nav[aria-current="page"]{background:var(--side-active);color:var(--side-active-ink);font-weight:600}
+.nav .cnt{margin-left:auto;font-size:11px;font-weight:700;background:var(--warn-soft);color:var(--warn);border-radius:999px;padding:1px 7px}
+.nav .num{width:18px;font-family:var(--display);font-style:italic;color:var(--side-muted);font-size:15px}
+.side .spacer{flex:1}
+.main{min-width:0;padding:0 32px 40px;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;gap:14px;padding:18px 0;border-bottom:1px solid var(--line);margin-bottom:26px}
+.top .crumb{font-size:13px;color:var(--muted)}
+.top .crumb b{color:var(--ink);font-weight:600}
+.top .r{margin-left:auto;display:flex;align-items:center;gap:12px}
+.iconbtn{width:38px;height:38px;border-radius:var(--rad-s);border:1px solid var(--line);background:var(--surface);display:grid;place-items:center;color:var(--muted);position:relative}
+.iconbtn .dot{position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--crit)}
+.who{display:flex;align-items:center;gap:10px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:700;font-family:var(--display)}
+.who b{display:block;font-size:13.5px}.who span{font-size:12px;color:var(--muted)}
+.content{display:flex;flex-direction:column;gap:22px;flex:1}
+.bnav{display:none}
+.i{flex:none;vertical-align:middle}
+
+@media(max-width:860px){
+  .app{grid-template-columns:1fr}
+  .side{display:none}
+  .main{padding:0 16px 104px}
+  .top .crumb{display:none}
+  .who div{display:none}
+  .bnav{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:40;background:var(--side);border-top:1px solid var(--side-line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px));justify-content:space-around}
+  .bnav button{border:0;background:transparent;color:var(--side-muted);display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;font-weight:600;padding:6px 8px;border-radius:10px}
+  .bnav button[aria-current="page"]{color:var(--side-active-ink);background:var(--side-active)}
+}
+
+/* ---------- Shared components ---------- */
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+h1{font-size:clamp(26px,3.2vw,34px);line-height:1.15;font-weight:700}
+h2{font-size:19px;font-weight:700}
+h3{font-size:16px;font-weight:700}
+p{margin:0}
+.eyebrow{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+.lead{color:var(--muted);font-size:15.5px;max-width:62ch;margin-top:8px}
+.muted{color:var(--muted)}
+.small{font-size:12.5px}
+.ph{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;justify-content:space-between}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--rad);padding:22px;box-shadow:var(--shadow);min-width:0}
+.ch{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid transparent;background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:var(--rad-s);font-weight:600;font-size:14px;white-space:nowrap}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--ink)}
+.btn.soft{background:var(--accent-soft);color:var(--accent)}
+.btn.sm{padding:7px 12px;font-size:13px}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;padding:3px 10px;border-radius:999px;background:var(--surface2);color:var(--muted);white-space:nowrap}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.crit{background:var(--crit-soft);color:var(--crit)}
+.chip.info{background:var(--accent-soft);color:var(--accent)}
+.chip.pair{background:transparent;border:1px dashed var(--accent);color:var(--accent)}
+.bar{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.bar>i{display:block;height:100%;border-radius:99px;background:var(--accent)}
+.bar.warn>i{background:var(--warn)}
+.grid2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:22px}
+.grid2e{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+@media(max-width:1060px){.grid2,.grid2e{grid-template-columns:1fr}}
+.list{display:flex;flex-direction:column}
+.li{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--line)}
+.li:first-child{border-top:0;padding-top:0}
+.li .tx{flex:1;min-width:0}
+.li .tx b{display:block;font-weight:600}
+.li .tx span{font-size:13px;color:var(--muted)}
+.ico{width:38px;height:38px;border-radius:var(--rad-s);display:grid;place-items:center;background:var(--surface2);color:var(--muted);flex:none}
+.ico.ok{background:var(--ok-soft);color:var(--ok)}
+.ico.info{background:var(--accent-soft);color:var(--accent)}
+.ico.warn{background:var(--warn-soft);color:var(--warn)}
+.alert{display:flex;gap:12px;align-items:flex-start;padding:14px 16px;border-radius:var(--rad-s);background:var(--warn-soft);color:var(--ink);border:1px solid color-mix(in srgb,var(--warn) 30%,transparent)}
+.alert .i{color:var(--warn);margin-top:2px}
+.alert.info{background:var(--accent-soft);border-color:color-mix(in srgb,var(--accent) 25%,transparent)}
+.alert.info .i{color:var(--accent)}
+.video{position:relative;aspect-ratio:16/9;max-width:100%;border-radius:var(--rad);overflow:hidden;background:
+  radial-gradient(120% 90% at 20% 20%,color-mix(in srgb,var(--accent) 55%,#fff) 0%,transparent 60%),
+  radial-gradient(100% 80% at 85% 90%,color-mix(in srgb,var(--hi) 55%,#000) 0%,transparent 55%),
+  color-mix(in srgb,var(--accent) 70%,#0b0b14);display:grid;place-items:center;color:#fff}
+.video .play{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.95);color:#111;display:grid;place-items:center;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+.video .cap{position:absolute;left:16px;bottom:14px;right:16px;display:flex;justify-content:space-between;gap:10px;font-size:13px;font-weight:600;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.video .faces{position:absolute;top:16px;left:16px;display:flex}
+.video .faces span{width:34px;height:34px;border-radius:50%;border:2px solid rgba(255,255,255,.9);background:rgba(255,255,255,.25);display:grid;place-items:center;font-size:12px;font-weight:700;margin-right:-8px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field label{font-weight:600;font-size:14px}
+.field .hint{font-size:12.5px;color:var(--muted)}
+.input,textarea.input{width:100%;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:var(--rad-s);padding:11px 13px;font:inherit}
+textarea.input{min-height:92px;resize:vertical}
+.scale{display:flex;gap:6px;flex-wrap:wrap}
+.scale span{width:36px;height:36px;border-radius:var(--rad-s);border:1px solid var(--line);display:grid;place-items:center;font-weight:600;font-size:13px;font-variant-numeric:tabular-nums}
+.scale span.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tags{display:flex;gap:8px;flex-wrap:wrap}
+.tags span{border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px;font-weight:500}
+.tags span.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.tabs{display:inline-flex;gap:4px;background:var(--surface2);padding:4px;border-radius:calc(var(--rad-s) + 4px);flex-wrap:wrap}
+.tabs button{border:0;background:transparent;padding:8px 14px;border-radius:var(--rad-s);font-weight:600;font-size:13.5px;color:var(--muted)}
+.tabs button[aria-pressed="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.drop{border:1.5px dashed var(--line);border-radius:var(--rad);padding:26px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:8px;color:var(--muted)}
+.steps{display:flex;gap:8px;flex-wrap:wrap}
+.step{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:var(--rad-s);border:1px solid var(--line);background:var(--surface);font-size:13px;font-weight:600}
+.step .n{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;background:var(--surface2);color:var(--muted)}
+.step.on{border-color:var(--accent);color:var(--accent)}
+.step.on .n{background:var(--accent);color:var(--accent-ink)}
+.step.ok .n{background:var(--ok-soft);color:var(--ok)}
+.stat{display:flex;flex-direction:column;gap:6px}
+.stat b{font-family:var(--display);font-size:28px;font-variant-numeric:tabular-nums;line-height:1}
+.stat span{font-size:13px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px}
+@media(max-width:1060px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.quote{font-family:var(--display);font-size:19px;line-height:1.45;max-width:60ch}
+.quote cite{display:block;font-family:var(--body);font-style:normal;font-size:13px;color:var(--muted);margin-top:10px}
+.scrollx{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:680px}
+th{text-align:left;font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:0 12px 10px}
+td{padding:12px;border-top:1px solid var(--line);vertical-align:middle}
+td b{font-weight:600}
+.num{font-variant-numeric:tabular-nums}
+
+/* Pager ("pasar página") */
+.pager{margin-top:28px;display:flex;align-items:center;gap:14px;justify-content:space-between;padding:16px 20px;border-radius:var(--rad);background:var(--surface);border:1px solid var(--line);flex-wrap:wrap}
+.pager .lab{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.pager .nx b{display:block;font-size:15px}
+
+/* Timeline (A) */
+.tl{position:relative;padding:34px 0 26px}
+.tl .track{height:10px;border-radius:99px;background:var(--surface2);position:relative}
+.tl .fill{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--accent)}
+.tl.warn .fill{background:var(--warn)}
+.tl .mk{position:absolute;top:50%;width:12px;height:12px;border-radius:3px;transform:translate(-50%,-50%) rotate(45deg);background:var(--surface);border:2px solid var(--accent)}
+.tl .mk.done{background:var(--accent)}
+.tl .today{position:absolute;top:-30px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;font-size:11.5px;font-weight:700;color:var(--ink)}
+.tl .today i{width:2px;height:24px;background:var(--ink)}
+.tl .months{display:flex;justify-content:space-between;margin-top:10px;font-size:12px;color:var(--muted);font-weight:500}
+.tl .ends{display:flex;justify-content:space-between;font-size:12px;color:var(--muted)}
+
+/* Dashboard A */
+.gA{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:22px}
+@media(max-width:1060px){.gA{grid-template-columns:1fr}}
+.todo1{display:flex;gap:16px;align-items:center;padding:18px;border-radius:var(--rad-s);background:var(--accent-soft);margin-bottom:6px;flex-wrap:wrap}
+.todo1 .tx{flex:1;min-width:200px}
+.todo1 b{font-size:16.5px;display:block}
+.todo1 span{color:var(--muted);font-size:13.5px}
+.ringwrap{display:flex;align-items:center;gap:22px;flex-wrap:wrap}
+.ring text{font-family:var(--display);font-weight:700;fill:var(--ink)}
+.lanes{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+@media(max-width:1060px){.lanes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.lanes{grid-template-columns:1fr}}
+.lane{border:1px solid var(--line);border-radius:var(--rad-s);padding:16px;display:flex;flex-direction:column;gap:10px;background:var(--bg)}
+.lane .top2{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.lane .ct{font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums}
+.lane .nx{font-size:13px}
+.lane .req{font-size:12px;color:var(--warn);display:flex;gap:6px;align-items:flex-start}
+
+/* Dashboard B — cuaderno */
+.pb h1,.pb h2{font-weight:500;letter-spacing:-.015em}
+.pb h1{font-size:clamp(30px,4vw,44px)}
+.pb h2{font-size:24px}
+.pb h3{font-weight:500;font-size:19px}
+.pb .card{border:0;border-top:1px solid var(--line);border-radius:0;background:transparent;padding:22px 0}
+.pb .eyebrow{font-family:var(--display);font-style:italic;text-transform:none;letter-spacing:0;font-size:16px;font-weight:400;color:var(--accent)}
+.pb .lane{background:var(--surface);border:0}
+.pb .pager{background:transparent;border:0;border-top:1px solid var(--ink);border-radius:0;padding:18px 0 0}
+.pb .pager .nx b{font-family:var(--display);font-size:20px;font-weight:500}
+.pb .top{border-bottom:0}
+.pb .stat b{font-weight:500}
+.ribbon{display:flex;gap:3px;margin-top:6px}
+.ribbon i{flex:1;height:30px;border-radius:2px;background:var(--surface2);position:relative}
+.ribbon i.past{background:color-mix(in srgb,var(--accent) 55%,var(--surface2))}
+.ribbon i.now{background:var(--hi);height:38px;margin-top:-4px}
+.ribbon i.s::after{content:"";position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:var(--surface);transform:translate(-50%,-50%)}
+.ribmonths{display:flex;margin-top:8px;font-family:var(--display);font-style:italic;color:var(--muted);font-size:14px}
+.ribmonths span{border-left:1px solid var(--line);padding-left:6px}
+.todaypage{background:var(--surface);border-radius:var(--rad);padding:30px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:20px;align-items:end;border-left:4px solid var(--hi)}
+@media(max-width:700px){.todaypage{grid-template-columns:1fr}}
+.todaypage h2{font-size:clamp(24px,3vw,32px);margin-top:6px}
+.todaypage p{color:var(--muted);margin-top:8px;font-size:15.5px}
+.threads{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.threads>div{padding:4px 18px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.threads>div:first-child{border-left:0;padding-left:0}
+@media(max-width:1060px){.threads{grid-template-columns:repeat(2,minmax(0,1fr));row-gap:22px}.threads>div:nth-child(3){border-left:0;padding-left:0}}
+@media(max-width:560px){.threads{grid-template-columns:1fr}.threads>div{border-left:0;padding-left:0}}
+.dots{display:flex;gap:4px;flex-wrap:wrap}
+.dots i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--accent)}
+.dots i.f{background:var(--accent)}
+.dots i.h{background:linear-gradient(90deg,var(--accent) 50%,transparent 50%)}
+.agenda .li .d{font-family:var(--display);font-size:22px;width:74px;flex:none;line-height:1.1}
+.agenda .li .d small{display:block;font-family:var(--body);font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+
+/* Dashboard C — ruta */
+.pc h1,.pc h2,.pc h3{letter-spacing:-.02em}
+.pc .btn{border-radius:999px}
+.hero{border-radius:var(--rad);padding:26px;background:
+  radial-gradient(90% 120% at 100% 0%,rgba(67,211,199,.28),transparent 55%),
+  radial-gradient(70% 90% at 0% 100%,rgba(246,195,91,.18),transparent 55%),#0E1A3A;color:#E8EEFF;display:flex;flex-direction:column;gap:20px}
+.hero .eyebrow{color:#8E9AC0}
+.hero h1{color:#fff}
+.hero .lead{color:#B9C3E2}
+.hero .row{display:flex;gap:18px;flex-wrap:wrap;align-items:stretch}
+.mission{flex:1.4;min-width:260px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.mission .k{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:#F6C35B;font-weight:700}
+.mission b{font-family:var(--display);font-size:22px;line-height:1.2}
+.mission .why{color:#B9C3E2;font-size:14px}
+.mission .btn{align-self:flex-start;background:#43D3C7;color:#071027}
+.hero .ribbon i{background:rgba(255,255,255,.1)}
+.hero .ribbon i.past{background:#43D3C7}
+.hero .ribbon i.now{background:#F6C35B}
+.hero .ribbon i.s::after{background:#0E1A3A}
+.hero .ribmonths{color:#8E9AC0}
+.hero .ribmonths span{border-color:rgba(255,255,255,.18)}
+.hero .muted{color:#8E9AC0}
+.pc .ribbon{gap:4px}
+.pc .ribbon i{border-radius:6px;height:34px}
+.pc .ribbon i.now{height:44px;margin-top:-5px;box-shadow:0 0 0 4px rgba(246,195,91,.18)}
+.pc .ribmonths{font-family:var(--body);font-style:normal;font-weight:600;font-size:12.5px;text-transform:capitalize}
+.pc .dots{gap:5px}
+.pc .dots i{width:12px;height:12px}
+.pc .threads b{font-family:var(--display);font-size:16px}
+.pc .agenda .li .d{font-weight:700}
+.gantt{display:grid;grid-template-columns:170px minmax(0,1fr);row-gap:12px;min-width:760px}
+.gantt .lab{font-weight:600;font-size:13.5px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.gantt .lab span{font-weight:500;font-size:11.5px;color:var(--muted)}
+.gantt .lab .chip{align-self:flex-start;font-size:11px;padding:1px 8px}
+.gtrack{position:relative;display:grid;grid-template-columns:repeat(26,minmax(0,1fr));align-items:center;min-height:38px;background:var(--surface2);border-radius:10px;padding:0 2px}
+.gtrack .t{position:absolute;top:-7px;bottom:-7px;width:2px;background:var(--hi);z-index:1}
+.gm{height:24px;margin:0 2px;border-radius:7px;display:grid;place-items:center;font-size:10.5px;font-weight:700;border:1.5px solid var(--accent);color:var(--accent);background:var(--surface);position:relative;z-index:2}
+.gm.d{background:var(--accent);color:var(--accent-ink)}
+.gm.n{border-color:var(--hi);background:var(--hi);color:#1A1203}
+.gm.w{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+.gm.l{border-style:dashed;border-color:color-mix(in srgb,var(--muted) 45%,transparent);color:var(--muted);background:transparent}
+.gm.dot{width:13px;height:13px;border-radius:50%;justify-self:center;margin:0}
+.gmonths{display:grid;grid-template-columns:repeat(26,minmax(0,1fr));font-size:11.5px;color:var(--muted);font-weight:600}
+.gmonths span{border-left:1px solid var(--line);padding-left:5px}
+.gmonths .hoy{color:var(--ink);font-weight:700;border:0;padding:0;text-align:center}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12.5px;color:var(--muted);margin-top:16px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:4px;border:1.5px solid var(--accent)}
+.hscroll{display:flex;gap:14px;overflow-x:auto;padding-bottom:4px}
+.scard{min-width:240px;flex:1;border-radius:16px;padding:16px;background:var(--surface);border:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.scard .d{font-family:var(--display);font-size:20px;font-weight:700}
+
+/* Login */
+.login{grid-column:1/-1;min-height:calc(100vh - 52px);display:grid;place-items:center;padding:32px 16px}
+.lbox{width:100%;max-width:980px;display:grid;grid-template-columns:1fr 1fr;border-radius:var(--rad);overflow:hidden;background:var(--surface);border:1px solid var(--line);box-shadow:var(--shadow)}
+@media(max-width:800px){.lbox{grid-template-columns:1fr}.lbox .art{min-height:200px}}
+.lbox .art{padding:36px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;background:var(--accent);color:var(--accent-ink)}
+.lbox .art h2{font-size:28px;line-height:1.2;color:inherit}
+.lbox .art p{opacity:.85}
+.lbox form{padding:40px;display:flex;flex-direction:column;gap:16px}
+.whopick{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.whopick button{border:1px solid var(--line);background:var(--bg);border-radius:var(--rad-s);padding:12px;display:flex;gap:10px;align-items:center;text-align:left}
+.whopick button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.pb .lbox .art{background:var(--surface2);color:var(--ink)}
+.pb .lbox .art h2{font-size:36px;font-weight:500}
+.pc .lbox .art{background:#0E1A3A;color:#E8EEFF}
+.modlist .li{cursor:pointer;border-radius:var(--rad-s)}
+.modlist .li.on .tx b{color:var(--accent)}
+.split{display:grid;grid-template-columns:320px minmax(0,1fr);gap:22px;align-items:start}
+@media(max-width:1060px){.split{grid-template-columns:1fr}}
+.qblock{display:flex;flex-direction:column;gap:20px}
+.sessrow{display:flex;gap:16px;padding:16px;border:1px solid var(--line);border-radius:var(--rad-s);background:var(--bg);align-items:flex-start;flex-wrap:wrap}
+.sessrow .n{font-family:var(--display);font-size:24px;font-weight:700;width:44px;color:var(--muted)}
+.sessrow.next{border-color:var(--accent);background:var(--accent-soft)}
+.sessrow.next .n{color:var(--accent)}
+.sessrow .tx{flex:1;min-width:200px;display:flex;flex-direction:column;gap:6px}
+.agendaitems{margin:6px 0 0;padding-left:18px;color:var(--ink);font-size:13.5px}
+.agendaitems li{margin:3px 0}
+</style>
+
+<div class="demobar" role="toolbar" aria-label="Controles de la demo">
+  <div class="grp"><span class="tag">Propuesta</span>
+    <div class="seg" id="segP">
+      <button data-v="a">A · Claridad</button><button data-v="b">B · Cuaderno</button><button data-v="c">C · Ruta</button>
+    </div></div>
+  <div class="grp"><span class="tag">Momento</span>
+    <div class="seg" id="segPh">
+      <button data-v="day1">Día 1</button><button data-v="mid">Semana 7</button><button data-v="end">Semana 23</button>
+    </div></div>
+  <div class="grp"><span class="tag">Entra</span>
+    <div class="seg" id="segW">
+      <button data-v="pedro">Pedro</button><button data-v="andrea">Andrea</button>
+    </div></div>
+  <div class="grp">
+    <button class="linkbtn" id="toLogin">Ver login</button>
+    <button class="linkbtn" id="toTeam">Vista equipo</button>
+  </div>
+  <span class="note">Maqueta visual · datos de ejemplo · sin funcionalidad</span>
+</div>
+<div id="root"></div>
+
+<script>
+const S={p:'c',screen:'inicio',who:'pedro',phase:'mid',taskTab:'online',mod:null};
+try{const s=JSON.parse(localStorage.getItem('cep-demo')||'{}');Object.assign(S,s,{mod:null});}catch(e){}
+const save=()=>{try{localStorage.setItem('cep-demo',JSON.stringify({p:S.p,screen:S.screen,who:S.who,phase:S.phase}))}catch(e){}};
+
+const WHO={pedro:{n:'Pedro',full:'Pedro Ramírez',ini:'P',other:'Andrea'},andrea:{n:'Andrea',full:'Andrea Solís',ini:'A',other:'Pedro'}};
+const MODS=['El mapa de su relación','Comunicación: hablar para ser escuchados','Del conflicto al acuerdo','Necesidades y valoración','Emociones: regular antes de responder','Acuerdos que se cumplen','Intimidad y conexión','Su proyecto de pareja'];
+const MODMIN=[24,31,27,29,26,33,28,35];
+const STAGES=[['Llegada','Bienvenida, contrato y radiografía'],['Comprender','Módulos 1–4'],['Transformar','Módulos 5–8 y sesiones'],['Consolidar','Acuerdos en la práctica'],['Cierre','Sesión final y plan']];
+const OB=[['Ver el video de bienvenida','4 min · Diego y su terapeuta les explican qué viene'],['Firmar el contrato','Qué firman y por qué'],['Unirse al grupo de WhatsApp','Su canal directo con Yasna, del equipo'],['Primera sesión agendada','Quedó lista en la entrevista'],['Radiografía inicial · parte individual','Cada uno responde la suya, en privado'],['Radiografía inicial · parte en pareja','La responden juntos; queda en la ficha de ambos']];
+const COUPLE_WEEKS=[2,5,8,11,14,17,20,24,26];
+
+const DATA={
+ day1:{week:1,today:'1 de septiembre',left:26,stage:0,status:'start',
+  msg:'Hoy empiezan. Aquí tienen todo en orden: solo sigan el primer paso.',
+  ob:['current','todo','todo','done','todo','todo'],
+  mods:['current','locked','locked','locked','locked','locked','locked','locked'],
+  todo:[{t:'Ver el video de bienvenida',why:'4 minutos para entender cómo funciona todo su proceso',k:'play',go:'bienvenida',time:'4 min'},
+        {t:'Revisar y firmar el contrato',why:'Les explicamos qué firman y por qué, punto por punto',k:'pen',go:'contrato',time:'10 min'},
+        {t:'Responder su radiografía inicial',why:'La necesitamos antes de su primera sesión del 10 sep',k:'pulse',go:'radiografia',time:'25 min'}],
+  gDone:0,gNext:'9 sep · 7:00 pm',gList:[['9 sep','next'],['23 sep',''],['7 oct',''],['21 oct','']],
+  cDone:0,couple:[{n:1,d:'10 sep · 6:00 pm',t:'Objetivos y lectura de su radiografía',s:'next',req:'Radiografía inicial de ambos',agenda:['Conocerlos y escuchar a cada uno','Definir juntos los objetivos de los 6 meses','Adaptar el plan de sesiones a su caso']},
+         {n:2,d:'Por agendar',t:'Se define en la sesión 1',s:'locked',req:'Sesión 1'}],
+  next:['bienvenida','Ver el video de bienvenida']},
+ mid:{week:7,today:'14 de octubre',left:19,stage:2,status:'ok',
+  msg:'Van al día. Les queda una tarea antes de su próxima sesión.',
+  ob:['done','done','done','done','done','done'],
+  mods:['done','done','done','done','task','current','locked','locked'],
+  todo:[{t:'Entregar la tarea del Módulo 5',why:'La necesitan para su sesión de terapia del 22 oct',k:'pen',go:'modulos',time:'20 min',urgent:true},
+        {t:'Ver el Módulo 6 · Acuerdos que se cumplen',why:'Ritmo sugerido: un módulo por semana',k:'play',go:'modulos',time:'33 min'},
+        {t:'Dejar su pregunta para el coaching grupal',why:'Próximo coaching grupal: 21 oct · 7:00 pm',k:'chat',go:'coaching',time:'2 min'}],
+  gDone:3,gNext:'21 oct · 7:00 pm',gList:[['9 sep','done'],['23 sep','done'],['7 oct','done'],['21 oct','next'],['4 nov',''],['18 nov','']],
+  cDone:2,couple:[{n:1,d:'10 sep',t:'Objetivos y lectura de su radiografía',s:'done'},
+         {n:2,d:'1 oct',t:'El patrón de sus desacuerdos',s:'done'},
+         {n:3,d:'22 oct · 6:00 pm',t:'Hablar sin herir: pausa y reparación',s:'next',req:'Tarea del Módulo 5',agenda:['Revisar su tarea del Módulo 5 (la señal de pausa)','Practicar una conversación difícil de trabajo','Acordar cómo reparar después de una discusión']},
+         {n:4,d:'Por agendar',t:'Se define después de la sesión 3',s:'locked',req:'Módulo 6 visto'}],
+  next:['modulos','Entregar la tarea del Módulo 5']},
+ end:{week:23,today:'2 de febrero',left:3,stage:4,status:'warn',
+  msg:'Les quedan 3 semanas. Cierren lo pendiente para aprovechar su última sesión.',
+  ob:['done','done','done','done','done','done'],
+  mods:['done','done','done','done','done','done','done','task'],
+  todo:[{t:'Entregar la tarea del Módulo 8',why:'La revisaremos en su sesión del 9 feb',k:'pen',go:'modulos',time:'30 min',urgent:true},
+        {t:'Responder juntos el formulario de cierre',why:'Es en pareja: les llegó el enlace por email a los dos',k:'users',go:'radiografia',time:'25 min',urgent:true},
+        {t:'Agendar su sesión de cierre',why:'Última semana del proceso · a partir del 22 feb',k:'cal',go:'terapia',time:'1 min'}],
+  gDone:11,gNext:'9 feb · 7:00 pm',gList:[['12 ene','done'],['26 ene','done'],['9 feb','next'],['23 feb','última']],
+  cDone:7,couple:[{n:7,d:'13 ene',t:'Acuerdos de trabajo y de casa',s:'done'},
+         {n:8,d:'9 feb · 6:00 pm',t:'Revisión de su proyecto de pareja',s:'next',req:'Tarea del Módulo 8',agenda:['Leer juntos su proyecto de pareja','Qué funcionó y qué sigue costando','Preparar el plan de mantenimiento']},
+         {n:9,d:'Por agendar · desde 22 feb',t:'Sesión de cierre y plan de mantenimiento',s:'open'}],
+  next:['modulos','Entregar la tarea del Módulo 8']}
+};
+const MONTHS=[['Sep',4],['Oct',5],['Nov',4],['Dic',4],['Ene',5],['Feb',4]];
+
+/* ---------- icons ---------- */
+const IP={home:'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z',play:'M8 5v14l11-7z',pen:'M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4',pulse:'M3 12h4l3-8 4 16 3-8h4',book:'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM19 19v2H6',cal:'M4 6h16v14H4zM4 10h16M8 3v4M16 3v4',chart:'M5 20V11M11 20V5M17 20v-6M3 20h18',users:'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.6',check:'M5 12l5 5L20 7',lock:'M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4',arrow:'M5 12h14M13 6l6 6-6 6',chat:'M4 5h16v11H9l-5 4z',bell:'M6 16v-5a6 6 0 0 1 12 0v5l2 2H4zM10 20a2 2 0 0 0 4 0',upload:'M12 16V4M7 9l5-5 5 5M4 20h16',clock:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 2',heart:'M12 20s-7-4.5-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.5-7 10-7 10z',out:'M15 4h4v16h-4M10 8l-4 4 4 4M6 12h10',file:'M14 3H6a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8zM14 3v5h5',sun:'M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v2M12 21v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M1 12h2M21 12h2',info:'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 11v6M12 7.5v.5',flag:'M5 21V4h11l-2 4 2 4H5',dl:'M12 4v12M7 11l5 5 5-5M4 20h16',more:'M5 12h.01M12 12h.01M19 12h.01'};
+const ico=(n,s=18)=>n==='play'?`<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${IP.play}"/></svg>`:`<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${IP[n]}"/></svg>`;
+
+/* ---------- helpers ---------- */
+const D=()=>DATA[S.phase];
+const W=()=>WHO[S.who];
+const go=s=>`data-go="${s}"`;
+function counts(d){
+  const obDone=d.ob.filter(x=>x==='done').length;
+  const vids=d.mods.filter(x=>x==='done'||x==='task').length;
+  const tasks=d.mods.filter(x=>x==='done').length;
+  const done=obDone+vids+tasks+d.gDone+d.cDone;
+  return {obDone,vids,tasks,done,total:6+8+8+13+9,pct:Math.round(done/44*100),time:Math.round(d.week/26*100)};
+}
+const statusChip=d=>d.status==='warn'?`<span class="chip warn">${ico('clock',14)} Quedan ${d.left} semanas</span>`:d.status==='start'?`<span class="chip info">${ico('flag',14)} Semana 1 de 26</span>`:`<span class="chip ok">${ico('check',14)} Van al día</span>`;
+
+const NAV=[['inicio','El proceso','home'],['bienvenida','Bienvenida','play'],['contrato','Contrato','pen'],['radiografia','Radiografía inicial','pulse'],['modulos','Módulos','book'],['terapia','Sesiones de Terapia','heart'],['coaching','Coaching Grupal','users'],['progreso','Mi progreso','chart']];
+const TITLES={inicio:'El proceso',bienvenida:'Bienvenida',contrato:'Contrato',radiografia:'Radiografía inicial',modulos:'Módulos',terapia:'Sesiones de Terapia',coaching:'Coaching Grupal',progreso:'Mi progreso',equipo:'Vista del equipo'};
+function navBadge(id,d){
+  if(id==='modulos'){const n=d.mods.filter(x=>x==='task').length;return n?`<span class="cnt">${n}</span>`:''}
+  if(id==='radiografia'&&d.ob[4]!=='done')return `<span class="cnt">2</span>`;
+  if(id==='contrato'&&d.ob[1]!=='done')return `<span class="cnt">1</span>`;
+  return '';
+}
+
+/* ---------- shell ---------- */
+function shell(inner){
+  const d=D(),w=W();
+  const firstSteps=['bienvenida','contrato','radiografia'];
+  const items=NAV.map(([id,label,ic])=>{
+    const num=S.p==='b'&&firstSteps.includes(id)?`<span class="num">${firstSteps.indexOf(id)+1}</span>`:ico(ic);
+    return `<button class="nav" ${go(id)} ${S.screen===id?'aria-current="page"':''}>${num}<span>${label}</span>${navBadge(id,d)}</button>`;
+  });
+  let navHtml;
+  if(S.p==='b'){
+    navHtml=`<div class="navlabel">Índice</div>${items[0]}<div class="navlabel">Primeros pasos</div>${items.slice(1,4).join('')}<div class="navlabel">Su proceso</div>${items.slice(4).join('')}`;
+  }else{
+    navHtml=`<div class="navlabel">Menú</div>${items.join('')}`;
+  }
+  const brandSub=S.p==='b'?'Cuaderno de su proceso':S.p==='c'?'Su ruta de pareja':'Terapia de pareja';
+  const topRight=S.p==='c'
+    ?`<span class="chip ok">${ico('sun',14)} ${S.phase==='end'?'Recta final':'Racha: '+Math.max(1,D().week)+' semanas'}</span>`
+    :S.p==='b'?`<span class="muted small" style="font-family:var(--display);font-style:italic;font-size:15px">Página ${d.week} de 26</span>`:'';
+  return `<div class="app p${S.p}">
+  <aside class="side">
+    <div class="brand"><span class="mark">C</span><div>CEP<small>${brandSub}</small></div></div>
+    ${navHtml}
+    <div class="spacer"></div>
+    <div class="navlabel">Otros</div>
+    <button class="nav" ${go('equipo')} ${S.screen==='equipo'?'aria-current="page"':''}>${ico('users')}<span>Vista equipo <span class="small" style="opacity:.7">(demo)</span></span></button>
+    <button class="nav" ${go('login')}>${ico('out')}<span>Cerrar sesión</span></button>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div class="crumb">Terapia de pareja · 6 meses · <b>${TITLES[S.screen]}</b></div>
+      <div class="r">${topRight}
+        <button class="iconbtn" aria-label="Avisos">${ico('bell')}<span class="dot"></span></button>
+        <div class="who"><span class="av">${w.ini}</span><div><b>${w.full}</b><span>Con ${w.other}</span></div></div>
+      </div>
+    </div>
+    <div class="content">${inner}</div>
+  </main>
+  <nav class="bnav" aria-label="Menú">
+    ${[['inicio','Proceso','home'],['modulos','Módulos','book'],['terapia','Terapia','heart'],['coaching','Coaching','users'],['progreso','Progreso','chart']].map(([id,l,ic])=>`<button ${go(id)} ${S.screen===id?'aria-current="page"':''}>${ico(ic,20)}${l}</button>`).join('')}
+  </nav>
+</div>`;
+}
+
+const NEXT={bienvenida:['contrato','Contrato'],contrato:['radiografia','Radiografía inicial'],radiografia:['modulos','Módulos'],modulos:['terapia','Sesiones de Terapia'],terapia:['coaching','Coaching Grupal'],coaching:['progreso','Mi progreso'],progreso:['inicio','Volver a El proceso'],equipo:['inicio','Volver a la vista de pareja']};
+function pager(){
+  const d=D();
+  const [to,label]=S.screen==='inicio'?d.next:NEXT[S.screen];
+  const left=S.p==='b'?`<span class="muted" style="font-family:var(--display);font-style:italic;font-size:15px">pág. ${d.week} de 26</span>`:`<span class="lab">${S.screen==='inicio'?'Su siguiente paso':'Siguiente'}</span>`;
+  return `<div class="pager">${left}<button class="btn" ${go(to)}><span class="nx" style="text-align:left">${label}</span>${ico('arrow')}</button></div>`;
+}
+
+/* ---------- timeline / gantt / roadmap ---------- */
+function timelineA(d){
+  const pct=(d.week-.5)/26*100;
+  const mks=COUPLE_WEEKS.map((w,i)=>`<span class="mk ${i<d.cDone?'done':''}" style="left:${(w-.5)/26*100}%" title="Sesión de terapia ${i+1}"></span>`).join('');
+  return `<section class="card">
+    <div class="ch"><div><h2>Su línea de tiempo</h2><p class="muted small">Del 1 sep 2026 al 28 feb 2027 · los rombos son sus sesiones de terapia</p></div>${statusChip(d)}</div>
+    <div class="tl ${d.status==='warn'?'warn':''}">
+      <div class="track"><span class="fill" style="width:${pct}%"></span>${mks}
+        <span class="today" style="left:${pct}%">Hoy · sem. ${d.week}<i></i></span></div>
+      <div class="months">${MONTHS.map(m=>`<span>${m[0]}</span>`).join('')}</div>
+    </div>
+    ${d.status==='warn'?`<div class="alert">${ico('clock')}<div><b>Su proceso termina el 28 de febrero.</b> Tienen 2 pendientes para llegar completos a su última sesión.</div></div>`:''}
+  </section>`;
+}
+function ribbonB(d){
+  const cells=Array.from({length:26},(_,i)=>{const w=i+1;return `<i class="${w<d.week?'past':w===d.week?'now':''} ${COUPLE_WEEKS.includes(w)?'s':''}" title="Semana ${w}"></i>`}).join('');
+  return `<div><div class="ribbon" aria-label="Semana ${d.week} de 26">${cells}</div>
+  <div class="ribmonths">${MONTHS.map(m=>`<span style="flex:${m[1]}">${m[0].toLowerCase()}</span>`).join('')}</div>
+  <p class="muted small" style="margin-top:8px">Cada barra es una semana. El punto marca sus sesiones de terapia.</p></div>`;
+}
+function gantt(d){
+  const tpos=`left:calc(${(d.week-.5)/26*100}% - 1px)`;
+  const L=lanesData(d);
+  const ok=(late,label)=>late?`<span class="chip warn">${label}</span>`:`<span class="chip ok">${ico('check',12)} Al día</span>`;
+  const row=(lab,sub,state,cells)=>`<div class="lab">${lab}<span>${sub}</span>${state}</div><div class="gtrack"><span class="t" style="${tpos}"></span>${cells}</div>`;
+  const obDone=d.ob.every(x=>x==='done');
+  const obCell=`<span class="gm ${obDone?'d':'n'}" style="grid-column:1/3">${obDone?'Listo':'En curso'}</span>`;
+  const modCells=d.mods.map((s,i)=>`<span class="gm ${s==='done'?'d':s==='task'?'w':s==='current'?'n':'l'}" style="grid-column:${i+2}" title="Módulo ${i+1}">${i+1}</span>`).join('');
+  const grp=Array.from({length:13},(_,i)=>{const w=(i+1)*2;return `<span class="gm dot ${i<d.gDone?'d':i===d.gDone?'n':'l'}" style="grid-column:${w}" title="Coaching grupal ${i+1}"></span>`}).join('');
+  const cpl=COUPLE_WEEKS.map((w,i)=>`<span class="gm ${i<d.cDone?'d':i===d.cDone?'n':'l'}" style="grid-column:${w}" title="Sesión de terapia ${i+1}">S${i+1}</span>`).join('');
+  let col=1;const months=MONTHS.map(m=>{const x=`<span style="grid-column:${col}/span ${m[1]}">${m[0]}</span>`;col+=m[1];return x}).join('');
+  const taskLate=d.mods.includes('task');
+  const nc=d.couple.find(x=>x.s==='next');
+  return `<div class="scrollx"><div class="gantt">
+    <div></div><div class="gmonths">${months}</div>
+    ${row('Bienvenida y radiografía',`${counts(d).obDone} de 6 pasos`,ok(!obDone,'En curso'),obCell)}
+    ${row('Psicoeducación',`${counts(d).vids} de 8 módulos · 1 por semana`,ok(taskLate,'1 tarea pendiente'),modCells)}
+    ${row('Coaching Grupal',`${d.gDone} de 13 · cada 15 días`,ok(false),grp)}
+    ${row('Sesiones de Terapia',`${d.cDone} de 9 sesiones`,nc&&nc.req&&S.phase!=='day1'?`<span class="chip warn">${ico('lock',12)} ${nc.req}</span>`:ok(false),cpl)}
+  </div></div>
+  <div class="legend"><span><i style="background:var(--accent)"></i>Hecho</span><span><i style="background:var(--hi);border-color:var(--hi)"></i>Lo siguiente</span><span><i style="background:var(--warn-soft);border-color:var(--warn)"></i>Video visto, falta la tarea</span><span><i style="border-style:dashed;border-color:var(--muted)"></i>Por venir</span><span><i style="width:2px;border:0;background:var(--hi)"></i>Hoy · semana ${d.week}</span></div>`;
+}
+function ring(pct,size=128,label='avance'){
+  const r=50,c=2*Math.PI*r;
+  return `<svg class="ring" width="${size}" height="${size}" viewBox="0 0 120 120" role="img" aria-label="${pct}% ${label}">
+   <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="11"/>
+   <circle cx="60" cy="60" r="${r}" fill="none" stroke="var(--accent)" stroke-width="11" stroke-linecap="round" stroke-dasharray="${c*pct/100} ${c}" transform="rotate(-90 60 60)"/>
+   <text x="60" y="62" text-anchor="middle" font-size="26">${pct}%</text>
+   <text x="60" y="80" text-anchor="middle" font-size="10" style="font-family:var(--body);font-weight:500;fill:var(--muted)">${label}</text></svg>`;
+}
+function lanesData(d){
+  const c=counts(d);
+  const nextMod=d.mods.findIndex(x=>x==='task'||x==='current');
+  const nc=d.couple.find(x=>x.s==='next')||d.couple.find(x=>x.s==='open');
+  return [
+   {t:'Bienvenida y radiografía',n:c.obDone,of:6,nx:c.obDone===6?'Completado. Lo pueden revisar cuando quieran.':'Siguiente: '+OB[d.ob.findIndex(x=>x!=='done')][0],go:'bienvenida'},
+   {t:'Psicoeducación',n:c.vids,of:8,nx:nextMod>=0?(d.mods[nextMod]==='task'?'Falta la tarea del Módulo '+(nextMod+1):'Siguiente: Módulo '+(nextMod+1)):'Todo visto',go:'modulos',sub:'Mínimo 1 módulo por semana'},
+   {t:'Coaching Grupal',n:d.gDone,of:13,nx:'Próximo: '+d.gNext,go:'coaching',sub:'Cada 15 días'},
+   {t:'Sesiones de Terapia',n:d.cDone,of:9,nx:nc?'Sesión '+nc.n+': '+nc.d:'—',req:nc&&nc.req?'Requiere: '+nc.req:null,go:'terapia'}];
+}
+
+/* ---------- dashboards ---------- */
+function dashA(){
+  const d=D(),w=W(),c=counts(d);const [t0,...rest]=d.todo;
+  return `<div class="ph"><div><p class="eyebrow">El proceso</p><h1>Hola, ${w.n}</h1><p class="lead">${d.msg}</p></div>${statusChip(d)}</div>
+  ${timelineA(d)}
+  <div class="gA">
+    <section class="card"><div class="ch"><h2>Hoy pueden hacer</h2><span class="muted small">${d.today}</span></div>
+      <div class="todo1"><span class="ico info">${ico(t0.k)}</span><div class="tx"><b>${t0.t}</b><span>${t0.why}</span></div><button class="btn" ${go(t0.go)}>Empezar · ${t0.time}</button></div>
+      <div class="list">${rest.map(t=>`<div class="li"><span class="ico">${ico(t.k)}</span><div class="tx"><b>${t.t}</b><span>${t.why}</span></div><button class="btn ghost sm" ${go(t.go)}>${t.time} ${ico('arrow',14)}</button></div>`).join('')}</div>
+    </section>
+    <section class="card"><div class="ch"><h2>Cómo van</h2></div>
+      <div class="ringwrap">${ring(c.pct)}<div class="list" style="flex:1;min-width:150px">
+        <div class="li"><div class="tx"><b class="num">${c.done} de ${c.total} pasos</b><span>completados</span></div></div>
+        <div class="li"><div class="tx"><b class="num">${c.time}% del tiempo</b><span>semana ${d.week} de 26</span></div></div>
+      </div></div>
+      <p class="small muted" style="margin-top:14px">${c.pct>=c.time?'Van por delante del calendario. ¡Excelente!':'Van un poco detrás del calendario: hoy es buen día para avanzar.'}</p>
+    </section>
+  </div>
+  <section class="card"><div class="ch"><h2>Las 4 partes de su proceso</h2><span class="muted small">Avanzan al mismo tiempo, no una después de otra</span></div>
+    <div class="lanes">${lanesData(d).map(l=>`<button class="lane" ${go(l.go)} style="text-align:left;color:inherit;font:inherit">
+      <div class="top2"><b>${l.t}</b><span class="ct">${l.n}/${l.of}</span></div>
+      <div class="bar"><i style="width:${l.n/l.of*100}%"></i></div>
+      ${l.sub?`<span class="small muted">${l.sub}</span>`:''}
+      <span class="nx">${l.nx}</span>
+      ${l.req?`<span class="req">${ico('lock',14)} ${l.req}</span>`:''}</button>`).join('')}</div>
+  </section>
+  ${pager()}`;
+}
+function threads(d){
+  const c=counts(d),L=lanesData(d),tasksPending=d.mods.filter(x=>x==='task').length;
+  const dots=(n,of,half=0)=>`<div class="dots">${Array.from({length:of},(_,i)=>`<i class="${i<n?'f':i<n+half?'h':''}"></i>`).join('')}</div>`;
+  return `<div class="threads">
+      <div><b>${L[0].t}</b>${dots(c.obDone,6)}<span class="small muted">${L[0].nx}</span></div>
+      <div><b>${L[1].t}</b>${dots(c.tasks,8,c.vids-c.tasks)}<span class="small muted">${L[1].nx}${tasksPending?' · medio punto = video visto, falta la tarea':''}</span></div>
+      <div><b>${L[2].t}</b>${dots(d.gDone,13)}<span class="small muted">${L[2].nx}</span></div>
+      <div><b>${L[3].t}</b>${dots(d.cDone,9)}<span class="small muted">${L[3].nx}${L[3].req?'<br>'+L[3].req:''}</span></div>
+    </div>`;
+}
+function agenda(d){
+  const up=[...d.couple.filter(x=>x.s==='next'||x.s==='open').map(x=>({d:x.d,t:'Sesión de terapia '+x.n,s:x.t,req:x.req})),{d:d.gNext,t:'Coaching grupal',s:'Con otras parejas del programa · en línea'}];
+  return `<div class="list" style="margin-top:12px">${up.map(u=>{const p=u.d.split(' · ');return `<div class="li"><span class="d">${p[0]}<small>${p[1]||''}</small></span><div class="tx"><b>${u.t}</b><span>${u.s}</span>${S.p==='c'&&u.req?`<div style="margin-top:8px"><span class="chip warn">${ico('lock',13)} Requiere: ${u.req}</span></div>`:''}</div></div>`}).join('')}</div>`;
+}
+function dashB(){
+  const d=D(),w=W();const [t0,...rest]=d.todo;
+  return `<header><p class="eyebrow">Capítulo ${d.stage+1} · ${STAGES[d.stage][0]}</p><h1>${w.n}, esta es su semana ${d.week}.</h1><p class="lead">${d.msg}</p></header>
+  ${ribbonB(d)}
+  <article class="todaypage"><div><p class="eyebrow">La página de hoy</p><h2>${t0.t}</h2><p>${t0.why}</p></div><button class="btn" ${go(t0.go)}>Empezar · ${t0.time} ${ico('arrow',16)}</button></article>
+  <section class="card"><h3>También pueden</h3><div class="list" style="margin-top:12px">${rest.map(t=>`<div class="li"><div class="tx"><b>${t.t}</b><span>${t.why}</span></div><button class="btn ghost sm" ${go(t.go)}>${t.time}</button></div>`).join('')}</div></section>
+  <section class="card"><div class="ch"><h3>Los cuatro hilos de su proceso</h3><span class="muted small">Corren en paralelo durante los 6 meses</span></div>${threads(d)}</section>
+  <section class="card agenda"><h3>Próximas fechas</h3>${agenda(d)}</section>
+  ${pager()}`;
+}
+function dashC(){
+  const d=D(),w=W();const [t0,...rest]=d.todo;
+  return `<section class="hero">
+    <div class="ph"><div><p class="eyebrow">Etapa ${d.stage+1} de 5 · ${STAGES[d.stage][0]}</p><h1>${w.n}, esta es su semana ${d.week}.</h1><p class="lead">${d.msg}</p></div>${statusChip(d)}</div>
+    ${ribbonB(d)}
+    <div class="mission"><span class="k">La página de hoy</span><b>${t0.t}</b><span class="why">${t0.why}</span><button class="btn" ${go(t0.go)}>Empezar · ${t0.time} ${ico('arrow',16)}</button></div>
+  </section>
+  ${d.status==='warn'?`<div class="alert">${ico('clock')}<div><b>Recta final: quedan ${d.left} semanas.</b> Completen la tarea del Módulo 8 y el formulario de cierre antes del 9 feb.</div></div>`:''}
+  <section class="card"><div class="ch"><div><h2>Las cuatro áreas de su proceso</h2><p class="muted small">Avanzan a la vez durante los 6 meses. La línea dorada es hoy: lo que está a su izquierda ya debería estar hecho.</p></div>${statusChip(d)}</div>${gantt(d)}</section>
+  <div class="grid2e">
+    <section class="card"><h2 style="margin-bottom:14px">También pueden</h2><div class="list">${rest.map(t=>`<div class="li"><span class="ico info">${ico(t.k)}</span><div class="tx"><b>${t.t}</b><span>${t.why}</span></div><button class="btn soft sm" ${go(t.go)}>${t.time}</button></div>`).join('')}</div></section>
+    <section class="card agenda"><h2>Próximas fechas</h2>${agenda(d)}</section>
+  </div>
+  ${pager()}`;
+}
+
+/* ---------- shared screens ---------- */
+function bienvenida(){
+  const d=D();
+  const st=s=>s==='done'?`<span class="ico ok">${ico('check')}</span>`:s==='current'?`<span class="ico info">${ico('play')}</span>`:`<span class="ico">${ico('clock')}</span>`;
+  const goes=['bienvenida','contrato','bienvenida','terapia','radiografia','radiografia'];
+  return `<div class="ph"><div><p class="eyebrow">Primeros pasos</p><h1>Bienvenidos, Pedro y Andrea</h1><p class="lead">Acaban de dar un paso importante. Este espacio les muestra siempre dónde están, qué sigue y qué pueden hacer hoy.</p></div></div>
+  <div class="grid2">
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="video" role="img" aria-label="Video de bienvenida"><div class="faces"><span>D</span><span>T</span></div><span class="play">${ico('play',26)}</span><div class="cap"><span>Bienvenida · Diego y su terapeuta</span><span>4:12</span></div></div>
+      <p class="muted small">En el video: qué pasa en las próximas semanas, cómo usar esta app y por qué pueden empezar a aprender desde hoy, sin esperar a la primera sesión.</p>
+    </div>
+    <section class="card"><div class="ch"><h2>Su primera semana</h2><span class="chip ${d.ob.every(x=>x==='done')?'ok':'info'}">${d.ob.filter(x=>x==='done').length} de 6</span></div>
+      <div class="list">${OB.map((o,i)=>`<div class="li">${st(d.ob[i])}<div class="tx"><b>${o[0]}</b><span>${o[1]}</span></div>${d.ob[i]!=='done'?`<button class="btn ${d.ob[i]==='current'?'':'ghost'} sm" ${go(goes[i])}>${d.ob[i]==='current'?'Ver':'Ir'}</button>`:''}</div>`).join('')}</div>
+    </section>
+  </div>
+  <section class="card"><p class="quote">«Trabajamos con mucha estructura, pero no se trata de que ustedes se adapten a ella. Todos nuestros recursos se adaptan a su caso, a sus objetivos y a su realidad. Esto no es una receta.»<cite>Diego y su terapeuta</cite></p></section>
+  <section class="card"><div class="ch"><h2>Cómo funciona su proceso</h2><span class="muted small">6 meses · cuatro partes en paralelo</span></div>
+    <div class="lanes">
+      <div class="lane"><span class="ico info">${ico('pulse')}</span><b>Bienvenida y radiografía</b><span class="small muted">Contrato, WhatsApp y su radiografía inicial: así conocemos su punto de partida.</span></div>
+      <div class="lane"><span class="ico info">${ico('book')}</span><b>8 módulos en video</b><span class="small muted">Uno por semana como mínimo. Cada uno trae una tarea para llevar la teoría a su relación.</span></div>
+      <div class="lane"><span class="ico info">${ico('users')}</span><b>Coaching Grupal</b><span class="small muted">Cada 15 días, con otras parejas. Pueden dejar sus preguntas antes.</span></div>
+      <div class="lane"><span class="ico info">${ico('heart')}</span><b>Sesiones de Terapia</b><span class="small muted">Sesiones de pareja con su terapeuta. Lo que se ve en cada una se define con sus objetivos.</span></div>
+    </div></section>
+  ${pager()}`;
+}
+function contrato(){
+  const d=D(),signed=d.ob[1]==='done';
+  const pts=[['Qué incluye','6 meses: 8 módulos, coaching grupal cada 15 días y sus sesiones de terapia de pareja.'],['Confidencialidad','Lo que comparten aquí lo ve solo el equipo. Sus respuestas individuales no las ve su pareja.'],['Su compromiso','Ver al menos un módulo por semana, entregar las tareas y llegar a sus sesiones.'],['Cambios de fecha','Pueden reprogramar una sesión con 24 horas de aviso por WhatsApp.'],['Inicio y fin','Del 1 de septiembre de 2026 al 28 de febrero de 2027.']];
+  return `<div class="ph"><div><p class="eyebrow">Primeros pasos · 2 de 6</p><h1>Su contrato</h1><p class="lead">Antes de firmar, aquí está en palabras simples qué firman y por qué. El documento completo está abajo.</p></div>${signed?`<span class="chip ok">${ico('check',14)} Firmado por ambos</span>`:`<span class="chip warn">Pendiente de firma</span>`}</div>
+  <div class="grid2">
+    <section class="card"><h2 style="margin-bottom:14px">Lo importante, en cinco puntos</h2><div class="list">${pts.map(p=>`<div class="li"><span class="ico info">${ico('check')}</span><div class="tx"><b>${p[0]}</b><span>${p[1]}</span></div></div>`).join('')}</div></section>
+    <section class="card" style="display:flex;flex-direction:column;gap:16px"><h2>Firmas</h2>
+      <div class="list">
+        <div class="li"><span class="av">P</span><div class="tx"><b>Pedro Ramírez</b><span>${signed?'Firmó el 2 sep 2026':'Pendiente'}</span></div>${signed?`<span class="chip ok">Firmado</span>`:`<span class="chip">Pendiente</span>`}</div>
+        <div class="li"><span class="av">A</span><div class="tx"><b>Andrea Solís</b><span>${signed?'Firmó el 2 sep 2026':'Pendiente'}</span></div>${signed?`<span class="chip ok">Firmado</span>`:`<span class="chip">Pendiente</span>`}</div>
+      </div>
+      ${signed?`<button class="btn ghost">${ico('file')} Ver contrato firmado (PDF)</button>`:`<button class="btn">${ico('pen')} Revisar y firmar</button><p class="small muted">Cada uno firma desde su propio acceso. Toma unos 10 minutos.</p>`}
+    </section>
+  </div>
+  ${pager()}`;
+}
+function radiografia(){
+  const d=D(),w=W(),done=d.ob[5]==='done'&&S.phase!=='end';
+  const secs=[['Sobre ti','Individual'],['Tu historia de pareja','Individual'],['Lo que les trae aquí','En pareja'],['Sus objetivos','En pareja']];
+  const closing=S.phase==='end';
+  return `<div class="ph"><div><p class="eyebrow">${closing?'Cierre del proceso':'Primeros pasos · 5 y 6 de 6'}</p><h1>${closing?'Formulario de cierre':'Radiografía inicial'}</h1><p class="lead">${closing?'Miren cuánto han avanzado desde su radiografía inicial. Esta parte la responden juntos.':'No es un diagnóstico: es una foto de su punto de partida. Nos ayuda a adaptar todo el proceso a ustedes.'}</p></div>${done?`<span class="chip ok">${ico('check',14)} Enviada el 5 sep</span>`:`<span class="chip warn">Les toma unos 25 min</span>`}</div>
+  <div class="steps">${secs.map((s,i)=>`<span class="step ${i===2?'on':(done||i<2)&&S.phase!=='day1'?'ok':''}"><span class="n">${(done||i<2)&&S.phase!=='day1'&&i!==2?'✓':i+1}</span>${s[0]} <span class="chip ${s[1]==='En pareja'?'pair':''}" style="padding:1px 8px">${s[1]}</span></span>`).join('')}</div>
+  <div class="grid2">
+    <section class="card qblock">
+      <div class="ch" style="margin:0"><h2>3 · Lo que les trae aquí</h2><span class="chip pair">${ico('users',14)} Respóndanla juntos</span></div>
+      <div class="field"><label for="q1">¿Qué les gustaría que fuera distinto dentro de 6 meses?</label>
+        <textarea class="input" id="q1">Poder hablar de decisiones de trabajo sin terminar discutiendo. Que Andrea sienta que la escucho y que Pedro sienta que lo entiendo.</textarea></div>
+      <div class="field"><label>Hoy, ¿qué tan conectados se sienten? <span class="muted">(1 = nada · 10 = mucho)</span></label>
+        <div class="scale">${Array.from({length:10},(_,i)=>`<span class="${i===4?'on':''}">${i+1}</span>`).join('')}</div></div>
+      <div class="field"><label>¿En qué temas quieren trabajar?</label>
+        <div class="tags">${['Comunicación','Acuerdos','Trabajo y pareja','Valoración','Intimidad','Familia','Dinero'].map((t,i)=>`<span class="${[0,1,2,3].includes(i)?'on':''}">${t}</span>`).join('')}</div></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">Enviar sección</button><button class="btn ghost">Guardar borrador</button></div>
+    </section>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="alert info">${ico('users')}<div><b>Sección en pareja.</b> ${w.other} recibió el mismo enlace por email. Lo que envíen queda en la ficha de los dos.</div></div>
+      <div class="alert info">${ico('lock')}<div><b>Sus secciones individuales son privadas.</b> Solo las lee el equipo; ${w.other} no puede verlas.</div></div>
+      <section class="card"><h3 style="margin-bottom:10px">¿Para qué la usamos?</h3><p class="muted">Su terapeuta la lee antes de la primera sesión para llegar con contexto y definir con ustedes los objetivos del proceso.</p></section>
+    </div>
+  </div>
+  ${pager()}`;
+}
+function modulos(){
+  const d=D(),w=W();
+  let f=S.mod;if(f===null||f===undefined){f=d.mods.findIndex(x=>x==='task');if(f<0)f=d.mods.findIndex(x=>x==='current');if(f<0)f=0;}
+  const st=d.mods[f];
+  const icon=s=>s==='done'?`<span class="ico ok">${ico('check')}</span>`:s==='task'?`<span class="ico warn">${ico('pen')}</span>`:s==='current'?`<span class="ico info">${ico('play')}</span>`:`<span class="ico">${ico('lock')}</span>`;
+  const lbl=s=>s==='done'?'Visto · tarea entregada':s==='task'?'Visto · falta la tarea':s==='current'?'Disponible':'Se abre al completar el anterior';
+  const ans=S.who==='pedro'?'Sentí que no me estaba escuchando y quise cerrar el tema rápido, con datos. Ella lo vivió como que no me importaba.':'Sentí que otra vez no valoraba mi idea. Respondí antes de pensarlo y después me arrepentí de cómo lo dije.';
+  const req=f===4&&S.phase==='mid'?`<div class="alert">${ico('info')}<div><b>Esta tarea es necesaria para su sesión del 22 oct.</b> Si no la han terminado, les enviaremos un recordatorio 48 horas antes.</div></div>`:f===7&&S.phase==='end'?`<div class="alert">${ico('info')}<div><b>La revisaremos en su sesión del 9 feb.</b></div></div>`:'';
+  const task=st==='locked'?`<div class="alert info">${ico('lock')}<div>Este módulo se abre cuando terminen el anterior. Pueden ir más rápido si quieren, pero mínimo uno por semana.</div></div>`:`
+    <div class="ch" style="margin:0"><h2>Tarea del módulo</h2><div class="tabs"><button data-tab="online" aria-pressed="${S.taskTab==='online'}">Completar en línea</button><button data-tab="pdf" aria-pressed="${S.taskTab==='pdf'}">Descargar PDF y subir</button></div></div>
+    ${req}
+    ${S.taskTab==='online'?`
+    <div class="field"><label for="t1">1. Piensa en su última discusión. ¿Qué sentiste justo antes de responder?</label><span class="hint">Individual · solo lo lee el equipo</span><textarea class="input" id="t1">${ans}</textarea></div>
+    <div class="field"><label>2. ¿Qué tan rápido notas que te estás alterando? <span class="muted">(1 = tarde · 5 = enseguida)</span></label><div class="scale">${[1,2,3,4,5].map(n=>`<span class="${n===(S.who==='pedro'?3:2)?'on':''}">${n}</span>`).join('')}</div></div>
+    <div class="field"><label for="t3">3. Acuerden una señal de pausa que los dos respeten</label><span class="chip pair" style="align-self:flex-start">${ico('users',13)} En pareja · les llega por email a los dos</span><textarea class="input" id="t3" placeholder="Escríbanla juntos…"></textarea></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn">${ico('check',16)} Entregar tarea</button><button class="btn ghost">Guardar borrador</button></div>`
+    :`<div class="drop">${ico('upload',26)}<b style="color:var(--ink)">Arrastren aquí su tarea completada</b><span class="small">PDF, foto o escaneo · hasta 20 MB</span><button class="btn ghost sm">Elegir archivo</button></div>
+    <button class="btn soft" style="align-self:flex-start">${ico('dl',16)} Descargar la tarea en PDF</button>
+    <p class="small muted">¿Les gusta escribir a mano? Descarguen, completen y suban la foto. Recomendamos la versión en línea: así su terapeuta la tiene lista antes de la sesión.</p>`}`;
+  return `<div class="ph"><div><p class="eyebrow">Psicoeducación</p><h1>Módulos</h1><p class="lead">Mínimo un módulo por semana: así tienen tiempo de pensarlo. Si quieren ver dos o tres seguidos, también está bien.</p></div><span class="chip info">${d.mods.filter(x=>x==='done'||x==='task').length} de 8 vistos</span></div>
+  <div class="split">
+    <section class="card"><div class="list modlist">${MODS.map((m,i)=>`<div class="li ${i===f?'on':''}" data-mod="${i}" role="button" tabindex="0">${icon(d.mods[i])}<div class="tx"><b>${i+1}. ${m}</b><span>${lbl(d.mods[i])}</span></div></div>`).join('')}</div></section>
+    <div style="display:flex;flex-direction:column;gap:18px;min-width:0">
+      <div class="video" role="img" aria-label="Video del módulo ${f+1}"><span class="play">${st==='locked'?ico('lock',24):ico('play',26)}</span><div class="cap"><span>Módulo ${f+1} · ${MODS[f]}</span><span>${MODMIN[f]} min</span></div></div>
+      <section class="card qblock">${task}</section>
+    </div>
+  </div>
+  ${pager()}`;
+}
+function sessRow(c){
+  return `<div class="sessrow ${c.s==='next'?'next':''}"><span class="n">${c.n}</span><div class="tx">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><b>${c.t}</b>${c.s==='done'?`<span class="chip ok">Hecha</span>`:c.s==='next'?`<span class="chip info">Próxima</span>`:c.s==='open'?`<span class="chip warn">Por agendar</span>`:`<span class="chip">Por definir</span>`}</div>
+    <span class="small muted">${ico('clock',14)} ${c.d}</span>
+    ${c.req?`<span class="chip ${c.s==='locked'?'':'warn'}" style="align-self:flex-start">${ico('lock',13)} Requiere: ${c.req}</span>`:''}
+    ${c.agenda?`<span class="small" style="font-weight:600;margin-top:4px">Qué veremos</span><ul class="agendaitems">${c.agenda.map(a=>`<li>${a}</li>`).join('')}</ul>`:''}
+    ${c.s==='open'?`<button class="btn sm" style="align-self:flex-start">${ico('cal',15)} Agendar</button>`:''}
+  </div></div>`;
+}
+function terapia(){
+  const d=D(),nc=d.couple.find(x=>x.s==='next');
+  return `<div class="ph"><div><p class="eyebrow">Sesiones de Terapia</p><h1>Sus sesiones de terapia</h1><p class="lead">Sesiones de pareja con su terapeuta. No tienen que terminar los módulos para empezar: avanzan en paralelo.</p></div><span class="chip info">${d.cDone} de 9 hechas</span></div>
+  <div class="grid2">
+    <section class="card"><div class="ch"><h2>Su calendario de terapia</h2></div>
+      <div style="display:flex;flex-direction:column;gap:12px">${d.couple.map(sessRow).join('')}</div></section>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      ${nc&&nc.req?`<div class="alert">${ico('lock')}<div><b>Para su sesión del ${nc.d.split(' · ')[0]}:</b> ${nc.req.toLowerCase()}. Pueden agendar igual; les recordaremos completarlo antes.</div></div>`:''}
+      <section class="card"><h3 style="margin-bottom:10px">Cómo se define cada sesión</h3><p class="muted">Lo que se ve en cada sesión se define a partir de los objetivos que acordaron en la sesión 1. El plan se adapta a ustedes, no al revés.</p></section>
+      <section class="card"><h3 style="margin-bottom:10px">¿Necesitan cambiar una fecha?</h3><p class="muted">Avísenle a Yasna por el grupo de WhatsApp con 24 horas de anticipación.</p></section>
+    </div>
+  </div>
+  ${pager()}`;
+}
+function coaching(){
+  const d=D();
+  return `<div class="ph"><div><p class="eyebrow">Coaching Grupal</p><h1>Coaching Grupal</h1><p class="lead">Cada 15 días, en línea, con otras parejas del programa. Pueden dejar sus preguntas antes para que las trabajemos en la sesión.</p></div><span class="chip info">${d.gDone} de 13 hechas</span></div>
+  <div class="grid2">
+    <section class="card"><div class="ch"><h2>Fechas</h2><span class="muted small">Cada 15 días · 7:00 pm</span></div>
+      <div class="list">${d.gList.map(g=>`<div class="li"><span class="ico ${g[1]==='done'?'ok':g[1]==='next'?'info':''}">${ico(g[1]==='done'?'check':'users')}</span><div class="tx"><b>${g[0]}</b><span>${g[1]==='done'?'Grabación disponible':g[1]==='next'?'Próxima · enlace en el grupo de WhatsApp':g[1]==='última'?'Último coaching grupal':'Programada'}</span></div>${g[1]==='done'?`<button class="btn ghost sm">${ico('play',13)} Ver</button>`:''}</div>`).join('')}</div></section>
+    <section class="card qblock"><h2>¿Tienen una pregunta para el próximo coaching?</h2>
+      <div class="field"><label for="gq">Su pregunta o el tema que quieren que tratemos</label><textarea class="input" id="gq">¿Cómo pedir una pausa sin que la otra persona lo sienta como rechazo?</textarea><span class="hint">La leemos antes del coaching del ${d.gNext.split(' · ')[0]}. Puede ser anónima.</span></div>
+      <button class="btn" style="align-self:flex-start">Enviar pregunta</button></section>
+  </div>
+  ${pager()}`;
+}
+function progreso(){
+  const d=D(),c=counts(d);
+  const hist=[];
+  d.mods.forEach((s,i)=>{if(s==='done')hist.push(['pen',`Tarea del Módulo ${i+1}`,'Entregada en línea','ok']);if(s==='task')hist.push(['play',`Módulo ${i+1} · video visto`,'Falta entregar la tarea','warn'])});
+  if(d.ob[5]==='done')hist.push(['pulse','Radiografía inicial','Enviada el 5 sep · individual y en pareja','ok']);
+  if(d.ob[1]==='done')hist.push(['file','Contrato firmado','2 sep 2026','ok']);
+  hist.reverse();
+  return `<div class="ph"><div><p class="eyebrow">Mi progreso</p><h1>Lo que ya hicieron</h1><p class="lead">Todo lo que van completando queda aquí para volver a verlo cuando quieran.</p></div>${statusChip(d)}</div>
+  <section class="card"><div class="stats">
+    <div class="stat"><b>${c.obDone}/6</b><span>Primeros pasos</span></div>
+    <div class="stat"><b>${c.vids}/8</b><span>Módulos vistos</span></div>
+    <div class="stat"><b>${c.tasks}/8</b><span>Tareas entregadas</span></div>
+    <div class="stat"><b>${d.gDone}/13</b><span>Coaching Grupal</span></div>
+    <div class="stat"><b>${d.cDone}/9</b><span>Sesiones de Terapia</span></div>
+  </div></section>
+  <section class="card"><div class="ch"><h2>Historial</h2><span class="muted small">Lo más reciente primero</span></div>
+    ${hist.length?`<div class="list">${hist.map(h=>`<div class="li"><span class="ico ${h[3]}">${ico(h[0])}</span><div class="tx"><b>${h[1]}</b><span>${h[2]}</span></div>${h[3]==='ok'?`<button class="btn ghost sm">Ver</button>`:`<button class="btn sm" ${go('modulos')}>Completar</button>`}</div>`).join('')}</div>`:`<p class="muted">Todavía no hay nada aquí. Su primer paso: ver el video de bienvenida.</p>`}
+  </section>
+  ${pager()}`;
+}
+function equipo(){
+  const rows=[['Pedro y Andrea','Pareja · 6 meses','Semana 7','45%','Tarea M5 pendiente','22 oct','warn'],['Laura y Tomás','Pareja · 6 meses','Semana 15','61%','Al día','24 oct','ok'],['Carmen y Raúl','Pareja · 6 meses','Semana 2','7%','Radiografía en pareja sin enviar','28 oct','warn'],['Mónica V.','Individual · 2 meses','Semana 6','70%','Al día','23 oct','ok'],['Sofía y Martín','Intensivo · 3 días','14–16 nov','—','Contrato sin firmar','14 nov','crit']];
+  return `<div class="ph"><div><p class="eyebrow">Back office · Diego, terapeuta y Yasna</p><h1>Vista del equipo</h1><p class="lead">Una mirada rápida a quién va al día, quién necesita un recordatorio y qué preparar para cada sesión.</p></div><span class="chip info">5 procesos activos</span></div>
+  <section class="card"><div class="ch"><h2>Procesos activos</h2></div><div class="scrollx"><table>
+    <thead><tr><th>Cliente</th><th>Servicio</th><th>Momento</th><th>Avance</th><th>Estado</th><th>Próxima sesión</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr><td><b>${r[0]}</b></td><td>${r[1]}</td><td class="num">${r[2]}</td><td class="num">${r[3]}</td><td><span class="chip ${r[6]}">${r[4]}</span></td><td class="num">${r[5]}</td></tr>`).join('')}</tbody></table></div></section>
+  <div class="grid2e">
+    <section class="card"><div class="ch"><h2>Seguimiento de Yasna</h2><span class="chip warn">3 abiertos</span></div><div class="list">
+      <div class="li"><span class="ico warn">${ico('bell')}</span><div class="tx"><b>Pedro y Andrea · tarea del Módulo 5</b><span>Recordatorio automático enviado hoy 9:00 · esperando su clic en «Ya la completamos»</span></div></div>
+      <div class="li"><span class="ico warn">${ico('users')}</span><div class="tx"><b>Carmen y Raúl · radiografía en pareja</b><span>Reenviar el enlace a los dos · sesión 1 el 28 oct</span></div></div>
+      <div class="li"><span class="ico warn">${ico('pen')}</span><div class="tx"><b>Sofía y Martín · contrato</b><span>Llamar hoy · el intensivo empieza en un mes</span></div></div>
+    </div></section>
+    <section class="card"><div class="ch"><h2>Informe pre-sesión</h2><span class="muted small">Pedro y Andrea · sesión 3 · 22 oct</span></div><div class="list">
+      <div class="li"><div class="tx"><b>Objetivos (sesión 1)</b><span>Decidir temas de trabajo sin discutir · que Andrea se sienta valorada · que Pedro se sienta entendido</span></div></div>
+      <div class="li"><div class="tx"><b>Lo que dicen sus tareas</b><span>Pedro cierra los temas con datos; Andrea responde antes de pensar. Ambos lo reconocen en la tarea del Módulo 3.</span></div></div>
+      <div class="li"><div class="tx"><b>Pregunta para el coaching grupal</b><span>«¿Cómo pedir una pausa sin que se sienta como rechazo?»</span></div></div>
+    </div></section>
+  </div>
+  ${pager()}`;
+}
+function login(){
+  const w=W();
+  const art=S.p==='b'
+    ?`<div><p class="eyebrow">Cuaderno de su proceso</p><h2>Un espacio para cada uno, un camino para los dos.</h2></div><p class="muted">Seis meses, cuatro partes y siempre un siguiente paso claro.</p>`
+    :S.p==='c'
+    ?`<div><p class="eyebrow" style="color:#F6C35B">Su ruta de pareja</p><h2>Siempre sabrán dónde están y qué sigue.</h2></div><svg viewBox="0 0 300 90" style="width:100%;max-width:340px" aria-hidden="true"><path d="M10 70 C70 70 70 20 130 20 S190 70 250 50 S290 20 295 20" fill="none" stroke="#43D3C7" stroke-width="4" stroke-dasharray="2 9" stroke-linecap="round"/><circle cx="10" cy="70" r="7" fill="#43D3C7"/><circle cx="130" cy="20" r="7" fill="#F6C35B"/><circle cx="250" cy="50" r="7" fill="#0E1A3A" stroke="#8E9AC0" stroke-width="3"/></svg>`
+    :`<div><p class="eyebrow" style="color:inherit;opacity:.8">CEP · Terapia de pareja</p><h2>Aquí hay orden, claridad y un siguiente paso.</h2></div><p>Cada uno entra con su propio acceso. Es su espacio personal dentro del proceso de pareja.</p>`;
+  return `<div class="app p${S.p}"><div class="login"><div class="lbox">
+    <div class="art">${art}</div>
+    <form id="lf" novalidate>
+      <div><h2>Entra a tu espacio</h2><p class="muted small" style="margin-top:6px">Tu pareja tiene su propio acceso. Lo que escribes en tus tareas individuales lo ve solo el equipo.</p></div>
+      <div class="whopick">${['pedro','andrea'].map(k=>`<button type="button" data-who="${k}" aria-pressed="${S.who===k}"><span class="av">${WHO[k].ini}</span><span><b>${WHO[k].n}</b><br><span class="small muted">Ejemplo</span></span></button>`).join('')}</div>
+      <div class="field"><label for="em">Correo</label><input class="input" id="em" type="email" value="${S.who}@ejemplo.com"></div>
+      <div class="field"><label for="pw">Contraseña</label><input class="input" id="pw" type="password" value="contraseña"></div>
+      <button class="btn" type="submit" style="justify-content:center">Entrar ${ico('arrow',16)}</button>
+      <p class="small muted">¿Primera vez? Usa el enlace que te enviamos por email al confirmar tu proceso.</p>
+    </form></div></div></div>`;
+}
+
+/* ---------- render ---------- */
+const SCREENS={inicio:()=>S.p==='a'?dashA():S.p==='b'?dashB():dashC(),bienvenida,contrato,radiografia,modulos,terapia,coaching,progreso,equipo};
+const root=document.getElementById('root');
+function render(){
+  if(!SCREENS[S.screen]&&S.screen!=='login')S.screen='inicio';
+  root.innerHTML=S.screen==='login'?login():shell(SCREENS[S.screen]());
+  for(const [id,key] of [['segP','p'],['segPh','phase'],['segW','who']])
+    document.querySelectorAll('#'+id+' button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.v===S[key]));
+  save();
+}
+document.addEventListener('click',e=>{
+  const seg=e.target.closest('.seg button');
+  if(seg){const k={segP:'p',segPh:'phase',segW:'who'}[seg.parentElement.id];S[k]=seg.dataset.v;S.mod=null;render();return;}
+  if(e.target.closest('#toLogin')){S.screen='login';render();window.scrollTo(0,0);return;}
+  if(e.target.closest('#toTeam')){S.screen='equipo';render();window.scrollTo(0,0);return;}
+  const g=e.target.closest('[data-go]');
+  if(g){S.screen=g.dataset.go;S.mod=null;render();window.scrollTo(0,0);return;}
+  const m=e.target.closest('[data-mod]');
+  if(m){S.mod=+m.dataset.mod;render();return;}
+  const t=e.target.closest('[data-tab]');
+  if(t){S.taskTab=t.dataset.tab;render();return;}
+  const w=e.target.closest('[data-who]');
+  if(w){S.who=w.dataset.who;render();return;}
+});
+document.addEventListener('keydown',e=>{const m=e.target.closest&&e.target.closest('[data-mod]');if(m&&(e.key==='Enter'||e.key===' ')){e.preventDefault();S.mod=+m.dataset.mod;render();}});
+document.addEventListener('submit',e=>{e.preventDefault();S.screen='inicio';render();window.scrollTo(0,0);});
+render();
+</script>
