@@ -1,4 +1,7 @@
--- Enlaces de avisos estrictos y firma del contrato solo con la actividad abierta.
+-- Seguimiento de la auditoría: enlaces de avisos estrictos, firma del contrato solo con la actividad abierta
+-- y notas clínicas que no se pueden mover a otra pareja.
+
+-- Los navegadores quitan tabuladores y saltos de línea de las URLs: "/\t/otro.com" acaba siendo "//otro.com"
 -- (otro dominio). El enlace de un aviso es una ruta interna con caracteres imprimibles, sin barras invertidas.
 alter table public.notifications drop constraint notifications_link_internal;
 alter table public.notifications
@@ -44,3 +47,12 @@ begin
   end if;
   return new;
 end $$;
+
+-- Notas clínicas: al editar, la nota sigue siendo del autor y de una sesión de una pareja que tiene asignada
+-- (antes se podía mover la nota a la sesión de otra pareja). Admin, cualquiera.
+drop policy session_notes_update on public.session_notes;
+create policy session_notes_update on public.session_notes for update to authenticated
+  using (author_id = (select auth.uid()) or private.is_admin())
+  with check (private.is_admin() or (author_id = (select auth.uid()) and exists (
+                select 1 from public.enrollment_sessions s
+                where s.id = enrollment_session_id and private.is_assigned_clinician(s.enrollment_id))));
