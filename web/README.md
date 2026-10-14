@@ -24,7 +24,7 @@ Lee las variables de `web/.env.local` (enlace simbólico a `../.env.local`).
 |---|---|
 | Framework | Next.js |
 | Root Directory | `web` |
-| Variables **Config** (públicas) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Variables **Config** (públicas) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `NEXT_PUBLIC_WHATSAPP_ASSISTANT` (WhatsApp del asistente, solo dígitos con código de país; sin valor no aparece el botón) |
 | Variables **Secret** (solo servidor) | `SUPABASE_SERVICE_ROLE_KEY` (inscribir parejas e invitar), `SITE_URL` (dominio de producción, para los enlaces de los correos), `BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY`, `BUNNY_STREAM_TOKEN_AUTH_KEY` (videos; sin esta clave los videos no se muestran) |
 
 La `SUPABASE_SERVICE_ROLE_KEY` solo la usa el servidor al inscribir, después de comprobar que quien lo pide es ventas o admin.
@@ -32,3 +32,9 @@ La `SUPABASE_SERVICE_ROLE_KEY` solo la usa el servidor al inscribir, después de
 Después del primer despliegue, en Supabase → Authentication → URL Configuration:
 - **Site URL**: la URL de Vercel.
 - **Redirect URLs**: exactas, sin comodines: `https://<tu-dominio>/auth/aceptar` (y, solo mientras se pruebe en local, `http://localhost:3000/auth/aceptar`). Un comodín permitiría desviar los enlaces de los correos a otra dirección.
+
+## Secciones de la ronda 1 (Diego)
+
+- **Documentos** (`/documentos`): carpetas Legales, Proceso, Informes y Recursos. El equipo sube archivos desde la ficha de la pareja (`/equipo/parejas/[id]`); un documento puede ser para la pareja o solo para un miembro. Bucket privado `documents`.
+- **Soporte** (`/soporte`, bandeja del equipo en `/equipo/soporte`): consultas con historial; pueden ser privadas (solo quien la abre). Una consulta nueva crea una tarea para coordinación y la respuesta del equipo llega como aviso.
+- **Pruebas**: `npm test` (lógica del hub con `node --test`). Las pruebas pgTAP de `supabase/tests` no corren con `supabase test db --linked` en la nube (el rol del CLI no tiene USAGE sobre el esquema `extensions`); se ejecutaron por la API de Supabase dentro de una transacción que se aborta.
