@@ -1,18 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/database.types";
 import type { Hub } from "@/lib/data/hub";
+import { parseSchema, type Section } from "@/lib/forms";
 
 type Tables = Database["public"]["Tables"];
 
-export type Question = {
-  key: string;
-  type: "text" | "textarea" | "number" | "scale" | "single_choice" | "multi_choice";
-  label: string;
-  min?: number;
-  max?: number;
-  options?: string[];
-};
-export type Section = { key: string; title: string; scope: "individual" | "shared"; questions: Question[] };
+export type { Question, Section } from "@/lib/forms";
 
 export type ModuleStatus = "done" | "task" | "available" | "locked";
 
@@ -134,6 +127,5 @@ export async function getModules(hub: Hub, focusKey?: string) {
 }
 
 function parseSections(schema: Json): Section[] {
-  const sections = (schema as { sections?: Section[] } | null)?.sections;
-  return Array.isArray(sections) ? sections : [];
+  return parseSchema(schema);
 }

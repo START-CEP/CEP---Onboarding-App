@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/database.types";
-import type { Section } from "@/lib/data/modules";
+import { parseSchema, type Section } from "@/lib/forms";
 
 type Row = Database["public"]["Tables"]["enrollment_activities"]["Row"];
 
@@ -13,8 +13,7 @@ export async function activityRows(ids: string[]) {
 }
 
 export function parseSections(schema: Json | undefined | null): Section[] {
-  const sections = (schema as { sections?: Section[] } | null)?.sections;
-  return Array.isArray(sections) ? sections : [];
+  return parseSchema(schema);
 }
 
 export async function formSchemas(versionIds: string[]) {

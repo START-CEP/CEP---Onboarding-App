@@ -13,6 +13,7 @@ const TEAM: Item[] = [
 const SALES: Item[] = [{ href: "/equipo/inscribir", label: "Inscribir pareja", icon: "user" }];
 const ADMIN: Item[] = [
   { href: "/equipo/servicios", label: "Servicios", icon: "route" },
+  { href: "/equipo/formularios", label: "Formularios", icon: "pen" },
   { href: "/equipo/contenidos", label: "Videos y archivos", icon: "play" },
 ];
 

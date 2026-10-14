@@ -129,6 +129,11 @@ export async function deleteRow(_p: FormState, fd: FormData): Promise<FormState>
   return ok("Borrado.");
 }
 
+const KEY_PREFIX: Partial<Record<Enums["activity_type"], string>> = {
+  video_module: "M", homework: "T", form: "F", contract: "C", therapy_session: "S", group_session: "G",
+  staff_task: "E", external_link: "L", reading: "R", checklist: "K",
+};
+
 export async function saveActivity(_p: FormState, fd: FormData): Promise<FormState> {
   const supabase = await admin();
   const id = s(fd, "id");
@@ -153,7 +158,15 @@ export async function saveActivity(_p: FormState, fd: FormData): Promise<FormSta
     position: n(fd, "position") ?? 0,
     config,
   };
-  if (!row.key || !row.title) return { error: "La actividad necesita clave y título." };
+  if (!row.title) return { error: "La actividad necesita un título." };
+  if (!row.key) {
+    const { data: taken } = await supabase.from("service_activities").select("key").eq("version_id", row.version_id);
+    const keys = new Set((taken ?? []).map((x) => x.key));
+    const prefix = KEY_PREFIX[row.type] ?? "A";
+    let i = 1;
+    while (keys.has(`${prefix}${i}`)) i++;
+    row.key = `${prefix}${i}`;
+  }
   const { error } = id
     ? await supabase.from("service_activities").update(row).eq("id", id)
     : await supabase.from("service_activities").insert(row);
@@ -214,19 +227,6 @@ export async function addRequirement(_p: FormState, fd: FormData): Promise<FormS
     label: orNull(s(fd, "label")),
   });
   return fail(error, "No pudimos añadir el requisito") ?? ok("Requisito añadido.");
-}
-
-export async function createForm(_p: FormState, fd: FormData): Promise<FormState> {
-  const supabase = await admin();
-  let schema: Json;
-  try { schema = JSON.parse(s(fd, "schema")); } catch { return { error: "La estructura no es un JSON válido." }; }
-  if (!Array.isArray((schema as { sections?: unknown })?.sections)) return { error: "La estructura necesita una lista «sections»." };
-  const key = s(fd, "key");
-  const { data: form, error } = await supabase.from("forms").upsert({ key, name: s(fd, "name"), kind: s(fd, "kind") }, { onConflict: "key" }).select("id").single();
-  if (error || !form) return { error: "No pudimos crear el formulario." };
-  const { data: last } = await supabase.from("form_versions").select("version").eq("form_id", form.id).order("version", { ascending: false }).limit(1);
-  const { error: vErr } = await supabase.from("form_versions").insert({ form_id: form.id, version: (last?.[0]?.version ?? 0) + 1, schema, published_at: new Date().toISOString() });
-  return fail(vErr, "No pudimos guardar la versión del formulario") ?? ok("Formulario publicado. Ya puedes elegirlo en una actividad.");
 }
 
 export async function createContract(_p: FormState, fd: FormData): Promise<FormState> {

@@ -4,7 +4,9 @@ import { Icon } from "@/components/icon";
 import {
   AgendaEditor, ConfirmActivityButton, NoteForm, ScheduleForm, SessionStatusButtons, StepButton, TaskToggle, WaiveButton,
 } from "@/components/staff-forms";
+import { formSchemas } from "@/lib/data/extra";
 import { getStaff } from "@/lib/data/staff";
+import { answerText } from "@/lib/forms";
 import { createClient } from "@/lib/supabase/server";
 import { firstName, fmtDay, fmtTime } from "@/lib/process";
 
@@ -37,7 +39,7 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
     supabase.from("session_agenda_items").select("id, enrollment_activity_id, body, position").order("position"),
     supabase.from("session_notes").select("id, enrollment_session_id, body, created_at, profiles(full_name)").order("created_at", { ascending: false }),
     supabase.from("staff_task_progress").select("id, item_key, due_on, done_at, enrollment_activities!inner(enrollment_id, title, config)").eq("enrollment_activities.enrollment_id", id),
-    supabase.from("form_submissions").select("id, enrollment_activity_id, submitted_by, response_scope, status, answers, submitted_at, submission_files(files(path))").eq("enrollment_id", id).eq("status", "submitted").order("submitted_at", { ascending: false }),
+    supabase.from("form_submissions").select("id, enrollment_activity_id, form_version_id, submitted_by, response_scope, status, answers, submitted_at, submission_files(files(path))").eq("enrollment_id", id).eq("status", "submitted").order("submitted_at", { ascending: false }),
     supabase.from("enrollment_staff").select("care_roles(name), profiles(full_name)").eq("enrollment_id", id),
   ]);
 
@@ -47,6 +49,7 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
   const confirmables = (acts.data ?? []).filter((a) => !a.is_completed && a.type !== "therapy_session" && a.type !== "group_session");
   const label = (config: unknown, key: string) =>
     ((config as { checklist?: { key: string; label: string }[] } | null)?.checklist ?? []).find((c) => c.key === key)?.label ?? key;
+  const schemas = await formSchemas([...new Set((subs.data ?? []).map((s) => s.form_version_id).filter((v): v is string => Boolean(v)))]);
   const files = await Promise.all((subs.data ?? []).flatMap((s) => s.submission_files.map(async (f) => {
     const path = f.files?.path;
     if (!path) return null;
@@ -171,15 +174,18 @@ async function Couple({ params }: { params: PageProps<"/equipo/parejas/[id]">["p
           <div className="list">
             {subs.data!.map((s) => {
               const act = acts.data?.find((a) => a.activity_id === s.enrollment_activity_id);
-              const answers = Object.entries((s.answers ?? {}) as Record<string, unknown>);
+              const raw = (s.answers ?? {}) as Record<string, unknown>;
+              const questions = (schemas.get(s.form_version_id ?? "") ?? []).flatMap((sec) => sec.questions);
+              const known = questions.filter((q) => q.key in raw).map((q) => ({ key: q.key, label: q.label, text: answerText(q, raw[q.key]) }));
+              const answers = [...known, ...Object.keys(raw).filter((k) => !questions.some((q) => q.key === k)).map((k) => ({ key: k, label: k, text: answerText(undefined, raw[k]) }))];
               const own = files.filter((f) => f?.submission === s.id);
               return (
                 <details className="li" key={s.id} style={{ display: "block" }}>
                   <summary style={{ cursor: "pointer" }}>
                     <b>{act?.title}</b> · <span className="small muted">{s.response_scope === "shared" ? "En pareja" : nameOf(s.submitted_by)} · {s.submitted_at ? fmtDay(s.submitted_at) : ""}</span>
                   </summary>
-                  <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6 }}>
-                    {answers.map(([k, v]) => <p key={k} className="small"><b>{k}:</b> {Array.isArray(v) ? v.join(", ") : String(v)}</p>)}
+                  <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 10 }}>
+                    {answers.map((x) => <div key={x.key} className="small"><b style={{ display: "block" }}>{x.label}</b><span style={{ whiteSpace: "pre-wrap" }}>{x.text}</span></div>)}
                     {own.map((f) => f && <a key={f.name} className="small" href={f.url ?? "#"} target="_blank" rel="noreferrer" style={{ textDecoration: "underline" }}>Abrir {f.name}</a>)}
                   </div>
                 </details>

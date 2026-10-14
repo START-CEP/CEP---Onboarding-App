@@ -33,40 +33,55 @@ export function MarkViewed({ activityId, moduleKey, done }: { activityId: string
   );
 }
 
-function Field({ q, value, onChange, readOnly }: { q: Question; value: Json | undefined; onChange: (v: Json) => void; readOnly: boolean }) {
+const pill = (on: boolean): React.CSSProperties => ({
+  border: `1px solid ${on ? "var(--accent)" : "var(--line)"}`, background: on ? "var(--accent-soft)" : "transparent",
+  color: on ? "var(--accent)" : "inherit", borderRadius: 999, padding: "6px 12px", fontWeight: on ? 700 : 500,
+});
+
+export function Field({ q, value, onChange, readOnly }: { q: Question; value: Json | undefined; onChange: (v: Json) => void; readOnly: boolean }) {
   const id = `q-${q.key}`;
   switch (q.type) {
     case "textarea":
-      return <textarea className="input" id={id} value={(value as string) ?? ""} readOnly={readOnly} onChange={(e) => onChange(e.target.value)} />;
+      return <textarea className="input" id={id} value={(value as string) ?? ""} readOnly={readOnly} placeholder={q.placeholder} onChange={(e) => onChange(e.target.value)} />;
     case "text":
+    case "email":
+    case "date":
+      return <input className="input" id={id} type={q.type} value={(value as string) ?? ""} readOnly={readOnly} placeholder={q.placeholder}
+        style={q.type === "date" ? { maxWidth: 220 } : undefined} onChange={(e) => onChange(e.target.value)} />;
     case "number":
-      return <input className="input" id={id} type={q.type === "number" ? "number" : "text"} value={(value as string) ?? ""} readOnly={readOnly}
-        onChange={(e) => onChange(q.type === "number" ? Number(e.target.value) : e.target.value)} />;
+      return <input className="input" id={id} type="number" inputMode="decimal" value={(value as number | null) ?? ""} readOnly={readOnly} placeholder={q.placeholder}
+        style={{ maxWidth: 220 }} onChange={(e) => onChange(e.target.value === "" ? null : Number(e.target.value))} />;
     case "scale": {
       const min = q.min ?? 1, max = q.max ?? 5;
       return (
-        <div className="scale" role="radiogroup" aria-labelledby={`${id}-l`}>
-          {Array.from({ length: max - min + 1 }, (_, i) => min + i).map((n) => (
-            <button type="button" key={n} role="radio" aria-checked={value === n} className={value === n ? "on" : ""}
-              disabled={readOnly} onClick={() => onChange(n)} style={{ width: 36, height: 36, borderRadius: "var(--rad-s)", border: "1px solid var(--line)", background: value === n ? "var(--accent)" : "transparent", color: value === n ? "var(--accent-ink)" : "inherit", fontWeight: 700 }}>
-              {n}
-            </button>
-          ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignSelf: "flex-start" }}>
+          <div className="scale" role="radiogroup" aria-labelledby={`${id}-l`} style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {Array.from({ length: max - min + 1 }, (_, i) => min + i).map((n) => (
+              <button type="button" key={n} role="radio" aria-checked={value === n} className={value === n ? "on" : ""}
+                disabled={readOnly} onClick={() => onChange(n)} style={{ width: 36, height: 36, borderRadius: "var(--rad-s)", border: "1px solid var(--line)", background: value === n ? "var(--accent)" : "transparent", color: value === n ? "var(--accent-ink)" : "inherit", fontWeight: 700 }}>
+                {n}
+              </button>
+            ))}
+          </div>
+          {(q.minLabel || q.maxLabel) && (
+            <div className="small muted" style={{ display: "flex", justifyContent: "space-between", gap: 12 }}><span>{q.minLabel}</span><span>{q.maxLabel}</span></div>
+          )}
         </div>
       );
     }
+    case "yes_no":
     case "single_choice":
     case "multi_choice": {
       const multi = q.type === "multi_choice";
+      const options = q.type === "yes_no" ? ["Sí", "No"] : (q.options ?? []);
       const selected = multi ? ((value as string[]) ?? []) : [value as string];
       return (
-        <div className="tags">
-          {(q.options ?? []).map((o) => {
+        <div className="tags" role={multi ? "group" : "radiogroup"} aria-labelledby={`${id}-l`}>
+          {options.map((o) => {
             const on = selected.includes(o);
             return (
               <button type="button" key={o} className={on ? "on" : ""} disabled={readOnly} aria-pressed={on}
-                onClick={() => onChange(multi ? (on ? selected.filter((x) => x !== o) : [...selected, o]) : o)}
-                style={{ border: `1px solid ${on ? "var(--accent)" : "var(--line)"}`, background: on ? "var(--accent-soft)" : "transparent", color: on ? "var(--accent)" : "inherit", borderRadius: 999, padding: "6px 12px", fontWeight: on ? 700 : 500 }}>
+                onClick={() => onChange(multi ? (on ? selected.filter((x) => x !== o) : [...selected, o]) : o)} style={pill(on)}>
                 {o}
               </button>
             );
@@ -77,6 +92,8 @@ function Field({ q, value, onChange, readOnly }: { q: Question; value: Json | un
   }
 }
 
+const empty = (v: Json | undefined) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
+
 export function HomeworkForm({ activityId, returnTo, sections, initial, readOnly, partnerName, submitLabel = "Entregar tarea", sentLabel = "Tarea entregada." }: {
   activityId: string; returnTo?: string; sections: Section[]; initial: Answers; readOnly: boolean; partnerName?: string;
   submitLabel?: string; sentLabel?: string;
@@ -85,24 +102,37 @@ export function HomeworkForm({ activityId, returnTo, sections, initial, readOnly
   const [answers, setAnswers] = useState<Answers>(initial);
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
-  const save = (submit: boolean) =>
+  const save = (submit: boolean) => {
+    if (submit) {
+      const missing = sections.flatMap((s) => s.questions).find((q) => q.required && empty(answers[q.key]));
+      if (missing) {
+        setMsg({ error: `Falta responder: «${missing.label}».` });
+        document.getElementById(`q-${missing.key}-l`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+        return;
+      }
+      const bad = sections.flatMap((s) => s.questions).find((q) => q.type === "email" && !empty(answers[q.key]) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(answers[q.key])));
+      if (bad) return setMsg({ error: `Revisa el correo en «${bad.label}».` });
+    }
     start(async () => {
       const r = await saveHomework(activityId, answers, submit);
       setMsg(r.error ? { error: r.error } : { ok: submit ? sentLabel : "Borrador guardado." });
       if (!r.error) stay();
     });
+  };
 
   return (
     <form className="qblock" onSubmit={(e) => { e.preventDefault(); save(true); }}>
       {sections.map((s) => (
         <div key={s.key} className="qblock">
           {sections.length > 1 && <h3>{s.title}</h3>}
+          {s.description && <p className="muted">{s.description}</p>}
           <span className={`chip ${s.scope === "shared" ? "pair" : ""}`} style={{ alignSelf: "flex-start" }}>
             {s.scope === "shared" ? <><Icon name="users" size={13} /> En pareja: la ven los dos</> : <><Icon name="lock" size={13} /> Individual: solo la lee el equipo{partnerName ? `, no ${partnerName}` : ""}</>}
           </span>
           {s.questions.map((q, i) => (
             <div className="field" key={q.key}>
-              <label htmlFor={`q-${q.key}`} id={`q-${q.key}-l`}>{i + 1}. {q.label}</label>
+              <label htmlFor={`q-${q.key}`} id={`q-${q.key}-l`}>{i + 1}. {q.label}{q.required && !readOnly && <span aria-hidden="true" style={{ color: "var(--crit)" }}> *</span>}</label>
+              {q.description && <span className="hint">{q.description}</span>}
               <Field q={q} value={answers[q.key]} readOnly={readOnly} onChange={(v) => setAnswers((a) => ({ ...a, [q.key]: v }))} />
             </div>
           ))}

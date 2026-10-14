@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { ActionForm } from "@/components/action-form";
+import { ActivityEditor } from "@/components/activity-editor";
+import { ContractForm } from "@/components/contract-form";
 import { Icon } from "@/components/icon";
 import {
-  addRequirement, addStep, cloneVersion, createContract, createForm, deleteDraft, deleteRow, duplicateAsNewService,
-  moveStep, publishVersion, saveActivity, saveBlock, saveTrack, updateStep, updateVersion,
+  addRequirement, addStep, cloneVersion, deleteDraft, deleteRow, duplicateAsNewService,
+  moveStep, publishVersion, saveBlock, saveTrack, updateStep, updateVersion,
 } from "@/lib/actions/catalog";
+import { ACTIVITY_TYPES } from "@/lib/activity-types";
+import { fmtDay } from "@/lib/process";
 import { getStaff } from "@/lib/data/staff";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/database.types";
@@ -20,18 +24,9 @@ export default function VersionPage({ params }: PageProps<"/equipo/servicios/[id
   );
 }
 
-const TYPES: [Activity["type"], string][] = [
-  ["video_module", "Video (módulo)"], ["homework", "Tarea"], ["form", "Cuestionario"], ["contract", "Contrato"],
-  ["therapy_session", "Sesión de terapia"], ["group_session", "Coaching grupal"], ["staff_task", "Tarea del equipo"],
-  ["external_link", "Enlace externo"], ["reading", "Lectura"], ["checklist", "Checklist"],
-];
 const CRITERIA = [["viewed", "Vio el video / lo completó"], ["task_submitted", "Entregó la tarea"], ["form_submitted", "Envió el cuestionario"],
   ["signed", "Firmó"], ["attended", "Asistió a la sesión"], ["completed", "Completado"], ["staff_confirmed", "Confirmado por el equipo"]] as const;
-const PARTICIPANTS = [["all", "Toda la unidad"], ["each_member", "Cada miembro"], ["member_1", "Solo persona 1"], ["member_2", "Solo persona 2"]] as const;
-
-const FORM_EXAMPLE = JSON.stringify({ sections: [{ key: "s1", title: "Sección", scope: "individual", questions: [
-  { key: "q1", type: "textarea", label: "Pregunta abierta" }, { key: "q2", type: "scale", label: "Del 1 al 5", min: 1, max: 5 },
-  { key: "q3", type: "single_choice", label: "Elige una", options: ["Sí", "No"] }] }] }, null, 2);
+const typeName = (t: Activity["type"]) => ACTIVITY_TYPES.find((x) => x[0] === t)?.[1] ?? t;
 
 async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">["params"] }) {
   const { id } = await params;
@@ -51,55 +46,29 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
     supabase.from("service_requirements").select("*").eq("version_id", id),
     supabase.from("care_roles").select("id, name"),
     supabase.from("content_assets").select("id, kind, title").is("archived_at", null).order("title"),
-    supabase.from("form_versions").select("id, version, forms(name, kind)").order("created_at", { ascending: false }),
-    supabase.from("contract_templates").select("id, version, title").eq("service_id", version.service_id).order("version", { ascending: false }),
+    supabase.from("form_versions").select("id, version, form_id, forms(name, archived_at)").order("version", { ascending: false }),
+    supabase.from("contract_templates").select("id, version, title, published_at").eq("service_id", version.service_id).order("version", { ascending: false }),
   ]);
   const draft = version.status === "draft";
   const A = acts.data ?? [];
   const actLabel = (aid: string | null) => { const a = A.find((x) => x.id === aid); return a ? `${a.key} · ${a.title}` : "—"; };
 
-  const activityFields = (a?: Activity) => (
-    <>
-      <input type="hidden" name="version" value={id} />
-      {a && <input type="hidden" name="id" value={a.id} />}
-      <div className="grid2e">
-        <div className="field"><label>Clave (corta, única)</label><input className="input" name="key" defaultValue={a?.key} placeholder="S1, M3, RAD…" required /></div>
-        <div className="field"><label>Tipo</label>
-          <select className="input" name="type" defaultValue={a?.type ?? "video_module"}>{TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-        </div>
-        <div className="field" style={{ gridColumn: "1 / -1" }}><label>Título</label><input className="input" name="title" defaultValue={a?.title} required /></div>
-        <div className="field" style={{ gridColumn: "1 / -1" }}><label>Resumen / qué pasa</label><input className="input" name="summary" defaultValue={a?.summary ?? ""} /></div>
-        <div className="field"><label>Área</label>
-          <select className="input" name="track" defaultValue={a?.track_id ?? ""}><option value="">—</option>{(tracks.data ?? []).map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
-        </div>
-        <div className="field"><label>Responsable</label>
-          <select className="input" name="role" defaultValue={a?.responsible_role_id ?? ""}><option value="">—</option>{(roles.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}</select>
-        </div>
-        <div className="field"><label>Participan</label>
-          <select className="input" name="participants" defaultValue={a?.participants ?? "all"}>{PARTICIPANTS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-        </div>
-        <div className="field"><label>Respuestas</label>
-          <select className="input" name="scope" defaultValue={a?.response_scope ?? "shared"}><option value="shared">Compartidas (en pareja)</option><option value="individual">Individuales (privadas)</option></select>
-        </div>
-        <div className="field"><label>Video / archivo</label>
-          <select className="input" name="asset" defaultValue={a?.asset_id ?? ""}><option value="">—</option>{(assetsList.data ?? []).map((x) => <option key={x.id} value={x.id}>{x.kind === "video" ? "🎬" : "📄"} {x.title}</option>)}</select>
-        </div>
-        <div className="field"><label>Formulario o tarea</label>
-          <select className="input" name="form" defaultValue={a?.form_version_id ?? ""}><option value="">—</option>{(forms.data ?? []).map((f) => <option key={f.id} value={f.id}>{f.forms?.name} (v{f.version})</option>)}</select>
-        </div>
-        <div className="field"><label>Contrato</label>
-          <select className="input" name="contract" defaultValue={a?.contract_template_id ?? ""}><option value="">—</option>{(contracts.data ?? []).map((c) => <option key={c.id} value={c.id}>{c.title} (v{c.version})</option>)}</select>
-        </div>
-        <div className="field"><label>Minutos estimados</label><input className="input" name="minutes" type="number" defaultValue={a?.estimated_minutes ?? ""} /></div>
-        <div className="field"><label>Día sugerido (desde el inicio)</label><input className="input" name="offset" type="number" defaultValue={a?.suggested_offset_days ?? ""} /></div>
-        <div className="field"><label>Ritmo: días desde la anterior</label><input className="input" name="gap" type="number" defaultValue={a?.suggested_gap_days ?? ""} /></div>
-        <div className="field"><label>Orden</label><input className="input" name="position" type="number" defaultValue={a?.position ?? (A.length + 1) * 10} /></div>
-        <div className="field" style={{ gridColumn: "1 / -1" }}><label>Configuración avanzada (JSON: checklist, url…)</label>
-          <textarea className="input" name="config" defaultValue={a ? JSON.stringify(a.config ?? {}, null, 0) : ""} style={{ minHeight: 60, fontFamily: "monospace", fontSize: 12 }} />
-        </div>
-      </div>
-    </>
-  );
+  const formGroups = [...new Map((forms.data ?? []).map((f) => [f.form_id, f])).values()]
+    .filter((f) => !f.forms?.archived_at || A.some((a) => (forms.data ?? []).some((v) => v.form_id === f.form_id && v.id === a.form_version_id)))
+    .map((f) => ({ formId: f.form_id, name: f.forms?.name ?? "Formulario", versions: (forms.data ?? []).filter((v) => v.form_id === f.form_id).map((v) => ({ id: v.id, version: v.version })) }));
+  const formName = (vid: string | null) => { const f = (forms.data ?? []).find((v) => v.id === vid); return f ? `${f.forms?.name} v${f.version}` : null; };
+  const assetName = (aid: string | null) => (assetsList.data ?? []).find((x) => x.id === aid)?.title ?? null;
+  const contractName = (cid: string | null) => { const c = (contracts.data ?? []).find((x) => x.id === cid); return c ? `${c.title} v${c.version}` : null; };
+  const editorProps = {
+    versionId: id,
+    tracks: (tracks.data ?? []).map((t) => ({ id: t.id, name: t.name })),
+    roles: roles.data ?? [],
+    assets: assetsList.data ?? [],
+    forms: formGroups,
+    contracts: contracts.data ?? [],
+    nextPosition: ((A.at(-1)?.position ?? 0) + 10),
+  };
+  const stepOf = (aid: string) => (steps.data ?? []).filter((st) => st.activity_id === aid).map((st) => st.position);
 
   return (
     <>
@@ -124,6 +93,11 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
         </div>
       </div>
 
+      <nav className="subnav" aria-label="Secciones del servicio">
+        <a href="#datos">Datos</a><a href="#estructura">Bloques y áreas</a><a href="#actividades">Actividades ({A.length})</a>
+        <a href="#camino">El camino ({(steps.data ?? []).length})</a><a href="#formularios">Formularios y contratos</a>
+      </nav>
+
       {!draft && (
         <section className="card">
           <div className="ch"><h3>Duplicar como servicio nuevo</h3></div>
@@ -135,13 +109,13 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
         </section>
       )}
 
-      <section className="card">
+      <section className="card anchor" id="datos">
         <div className="ch"><h2>Datos de la versión</h2></div>
         <ActionForm action={updateVersion}>
           <input type="hidden" name="version" value={id} />
           <div className="grid2e">
-            <div className="field"><label>Duración esperada (días)</label><input className="input" name="duration" type="number" defaultValue={version.expected_duration_days ?? ""} disabled={!draft} /></div>
-            <div className="field"><label>Acceso a la app (días)</label><input className="input" name="access" type="number" defaultValue={version.access_days ?? ""} disabled={!draft} /></div>
+            <div className="field"><label htmlFor="v-dur">Duración esperada (días)</label><input id="v-dur" className="input" name="duration" type="number" min={1} defaultValue={version.expected_duration_days ?? ""} disabled={!draft} /><span className="hint">Cuánto suele durar el proceso completo</span></div>
+            <div className="field"><label htmlFor="v-acc">Acceso a la app (días)</label><input id="v-acc" className="input" name="access" type="number" min={1} defaultValue={version.access_days ?? ""} disabled={!draft} /><span className="hint">Desde la inscripción; luego el acceso se cierra</span></div>
             <div className="field"><label>Video de bienvenida</label>
               <select className="input" name="welcome" defaultValue={version.welcome_activity_id ?? ""} disabled={!draft}>
                 <option value="">—</option>{A.filter((a) => a.type === "video_module").map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}
@@ -149,69 +123,80 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
             </div>
             <div className="field"><label>Notas</label><input className="input" name="notes" defaultValue={version.notes ?? ""} disabled={!draft} /></div>
           </div>
-          {draft && <button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Guardar</button>}
+          {draft && <button className="btn sm" style={{ alignSelf: "flex-start" }}>Guardar datos</button>}
         </ActionForm>
       </section>
 
-      <div className="grid2e">
-        {([["Bloques del camino", blocks.data ?? [], saveBlock, "service_blocks"], ["Áreas (filas del cuadro)", tracks.data ?? [], saveTrack, "service_tracks"]] as const).map(([title, rows, save, table]) => (
-          <section className="card" key={table}>
-            <div className="ch"><h2>{title}</h2></div>
-            <div className="list">
-              {rows.map((r) => (
-                <div className="li" key={r.id}>
-                  {draft ? (
-                    <>
-                      <ActionForm action={save} inline style={{ flex: 1 }}>
-                        <input type="hidden" name="version" value={id} /><input type="hidden" name="id" value={r.id} />
-                        <input className="input" name="name" defaultValue={r.name} aria-label="Nombre" />
-                        <button className="btn ghost sm">Guardar</button>
-                      </ActionForm>
-                      <ActionForm action={deleteRow} inline><input type="hidden" name="table" value={table} /><input type="hidden" name="id" value={r.id} /><input type="hidden" name="version" value={id} /><button className="btn ghost sm">Borrar</button></ActionForm>
-                    </>
-                  ) : <div className="tx"><b>{r.position}. {r.name}</b></div>}
-                </div>
-              ))}
+      <section className="card anchor" id="estructura">
+        <div className="ch"><h2>Bloques y áreas</h2><span className="muted small">Los bloques agrupan los pasos del camino; las áreas son las filas del cuadro de la pareja</span></div>
+        <div className="grid2e">
+          {([["Bloques del camino", blocks.data ?? [], saveBlock, "service_blocks"], ["Áreas", tracks.data ?? [], saveTrack, "service_tracks"]] as const).map(([title, rows, save, table]) => (
+            <div key={table} className="qblock" style={{ gap: 10 }}>
+              <h3>{title}</h3>
+              <div className="list">
+                {rows.map((r, i) => (
+                  <div className="li" key={r.id} style={{ padding: "8px 0", gap: 8 }}>
+                    <span className="num small muted" style={{ width: 18 }}>{i + 1}</span>
+                    {draft ? (
+                      <>
+                        <ActionForm action={save} inline style={{ flex: 1 }} className="miniform">
+                          <input type="hidden" name="version" value={id} /><input type="hidden" name="id" value={r.id} />
+                          <input className="input" style={{ flex: 1, minWidth: 140 }} name="name" defaultValue={r.name} aria-label="Nombre" required />
+                          <button className="btn ghost sm">Guardar</button>
+                        </ActionForm>
+                        <ActionForm action={deleteRow} inline><input type="hidden" name="table" value={table} /><input type="hidden" name="id" value={r.id} /><input type="hidden" name="version" value={id} /><button className="btn ghost sm" aria-label={`Borrar ${r.name}`}>×</button></ActionForm>
+                      </>
+                    ) : <div className="tx"><b>{r.name}</b></div>}
+                  </div>
+                ))}
+              </div>
+              {draft && (
+                <ActionForm action={save} inline className="miniform">
+                  <input type="hidden" name="version" value={id} />
+                  <input className="input" style={{ flex: 1, minWidth: 140 }} name="name" placeholder={table === "service_blocks" ? "Nuevo bloque" : "Nueva área"} required aria-label="Nombre nuevo" />
+                  <button className="btn soft sm">Añadir</button>
+                </ActionForm>
+              )}
             </div>
-            {draft && (
-              <ActionForm action={save} inline style={{ marginTop: 10 }}>
-                <input type="hidden" name="version" value={id} />
-                <input className="input" name="name" placeholder="Nombre" required aria-label="Nombre nuevo" />
-                <button className="btn soft sm">Añadir</button>
-              </ActionForm>
-            )}
-          </section>
-        ))}
-      </div>
+          ))}
+        </div>
+      </section>
 
-      <section className="card">
-        <div className="ch"><h2>Actividades</h2><span className="muted small">{A.length} actividades · todo lo que la pareja o el equipo hace</span></div>
+      <section className="card anchor" id="actividades">
+        <div className="ch"><h2>Actividades</h2><span className="muted small">Todo lo que la pareja o el equipo hace. Luego las ordenas en «El camino».</span></div>
+        {A.length === 0 && <p className="muted" style={{ marginBottom: 12 }}>Aún no hay actividades. Crea la primera abajo.</p>}
         <div className="list">
-          {A.map((a) => (
-            <details className="li" key={a.id} style={{ display: "block" }}>
-              <summary style={{ cursor: "pointer" }}>
-                <b>{a.key}</b> · {a.title} <span className="small muted">· {TYPES.find((t) => t[0] === a.type)?.[1]}{a.asset_id ? " · con video/archivo" : ""}{a.form_version_id ? " · con formulario" : ""}</span>
-              </summary>
-              <div style={{ marginTop: 12 }}>
+          {A.map((a) => {
+            const links = [assetName(a.asset_id), formName(a.form_version_id), contractName(a.contract_template_id)].filter(Boolean);
+            const inSteps = stepOf(a.id);
+            return (
+              <details className="actrow" key={a.id}>
+                <summary>
+                  <span className="k">{a.key}</span>
+                  <span className="t">{a.title}</span>
+                  <span className="typechip">{typeName(a.type)}</span>
+                  {links.map((l) => <span key={l} className="chip info" style={{ maxWidth: 240, overflow: "hidden", textOverflow: "ellipsis" }}>{l}</span>)}
+                  {inSteps.length > 0 ? <span className="small muted">paso {inSteps.join(", ")}</span> : <span className="small muted">sin paso</span>}
+                </summary>
                 {draft ? (
                   <>
-                    <ActionForm action={saveActivity}>{activityFields(a)}<button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Guardar actividad</button></ActionForm>
-                    <ActionForm action={deleteRow} inline style={{ marginTop: 8 }}><input type="hidden" name="table" value="service_activities" /><input type="hidden" name="id" value={a.id} /><input type="hidden" name="version" value={id} /><button className="btn ghost sm">Borrar actividad</button></ActionForm>
+                    <ActivityEditor {...editorProps} activity={a} />
+                    <ActionForm action={deleteRow} inline style={{ marginTop: 8 }}><input type="hidden" name="table" value="service_activities" /><input type="hidden" name="id" value={a.id} /><input type="hidden" name="version" value={id} /><button className="btn ghost sm fb-danger">Borrar actividad</button></ActionForm>
                   </>
-                ) : <p className="small muted">{a.summary}</p>}
-              </div>
-            </details>
-          ))}
+                ) : <p className="small muted">{a.summary ?? "Sin resumen."}</p>}
+              </details>
+            );
+          })}
         </div>
         {draft && (
           <details style={{ marginTop: 14 }}>
-            <summary className="btn soft sm" style={{ display: "inline-flex", cursor: "pointer" }}>Nueva actividad</summary>
-            <div style={{ marginTop: 12 }}><ActionForm action={saveActivity}>{activityFields()}<button className="btn sm" style={{ alignSelf: "flex-start" }}>Crear actividad</button></ActionForm></div>
+            <summary className="btn sm" style={{ display: "inline-flex", cursor: "pointer", listStyle: "none" }}>+ Nueva actividad</summary>
+            <div style={{ marginTop: 12 }}><ActivityEditor {...editorProps} /></div>
           </details>
         )}
       </section>
 
-      <section className="card">
+      <section className="card anchor" id="camino">
         <div className="ch"><h2>El camino</h2><span className="muted small">{(steps.data ?? []).length} pasos · cada uno con su requisito para entrar</span></div>
         <div className="list">
           {(steps.data ?? []).map((st) => {
@@ -251,22 +236,23 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
                     <summary className="small" style={{ cursor: "pointer" }}>Editar paso o añadir requisito</summary>
                     <ActionForm action={updateStep} style={{ marginTop: 8 }}>
                       <input type="hidden" name="id" value={st.id} />
-                      <div className="grid2e">
-                        <input className="input" name="title" defaultValue={st.title} aria-label="Título del paso" />
-                        <select className="input" name="block" defaultValue={st.block_id ?? ""} aria-label="Bloque"><option value="">Sin bloque</option>{(blocks.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-                        <select className="input" name="activity" defaultValue={st.activity_id} aria-label="Actividad">{A.map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}</select>
-                        <input className="input" name="description" defaultValue={st.description ?? ""} placeholder="Qué pasa" aria-label="Descripción" />
+                      <div className="ae-grid">
+                        <div className="field"><label>Título del paso</label><input className="input" name="title" defaultValue={st.title} /></div>
+                        <div className="field"><label>Actividad principal</label><select className="input" name="activity" defaultValue={st.activity_id}>{A.map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}</select></div>
+                        <div className="field"><label>Bloque</label><select className="input" name="block" defaultValue={st.block_id ?? ""}><option value="">Sin bloque</option>{(blocks.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+                        <div className="field wide"><label>Qué pasa</label><input className="input" name="description" defaultValue={st.description ?? ""} /></div>
                       </div>
                       <button className="btn ghost sm" style={{ alignSelf: "flex-start" }}>Guardar paso</button>
                     </ActionForm>
-                    <ActionForm action={addRequirement} style={{ marginTop: 8 }}>
+                    <ActionForm action={addRequirement} style={{ marginTop: 14 }}>
                       <input type="hidden" name="version" value={id} /><input type="hidden" name="step" value={st.id} />
-                      <div className="grid2e">
-                        <select className="input" name="required" aria-label="Actividad requerida">{A.map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}</select>
-                        <select className="input" name="criterion" aria-label="Criterio">{CRITERIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-                        <select className="input" name="mandatory" aria-label="Obligatorio"><option value="yes">Obligatorio</option><option value="no">Opcional</option></select>
-                        <select className="input" name="enforcement" aria-label="Efecto"><option value="blocks">Bloquea hasta cumplirlo</option><option value="reminds">Solo recuerda</option></select>
-                        <input className="input" name="label" placeholder="Texto para la pareja (opcional)" aria-label="Texto" />
+                      <h3 style={{ fontSize: 14 }}>Nuevo requisito para entrar a este paso</h3>
+                      <div className="ae-grid">
+                        <div className="field"><label>Antes hay que…</label><select className="input" name="criterion">{CRITERIA.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+                        <div className="field"><label>…en la actividad</label><select className="input" name="required">{A.map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}</select></div>
+                        <div className="field"><label>Si no se cumple</label><select className="input" name="enforcement"><option value="blocks">Bloquea el paso</option><option value="reminds">Solo recuerda</option></select></div>
+                        <div className="field"><label>¿Obligatorio?</label><select className="input" name="mandatory"><option value="yes">Obligatorio</option><option value="no">Opcional</option></select></div>
+                        <div className="field wide"><label>Texto para la pareja (opcional)</label><input className="input" name="label" placeholder="Ej.: Ver el video de bienvenida" /></div>
                       </div>
                       <button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Añadir requisito</button>
                     </ActionForm>
@@ -280,40 +266,49 @@ async function Version({ params }: { params: PageProps<"/equipo/servicios/[id]">
           <ActionForm action={addStep} style={{ marginTop: 14 }}>
             <input type="hidden" name="version" value={id} />
             <h3>Añadir paso al final</h3>
-            <div className="grid2e">
-              <input className="input" name="title" placeholder="Título del paso" required aria-label="Título" />
-              <select className="input" name="activity" aria-label="Actividad que lo define">{A.map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}</select>
-              <select className="input" name="block" aria-label="Bloque"><option value="">Sin bloque</option>{(blocks.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select>
-              <input className="input" name="description" placeholder="Qué pasa" aria-label="Descripción" />
+            <div className="ae-grid">
+              <div className="field"><label>Título del paso</label><input className="input" name="title" required /></div>
+              <div className="field"><label>Actividad principal</label><select className="input" name="activity">{A.map((a) => <option key={a.id} value={a.id}>{a.key} · {a.title}</option>)}</select></div>
+              <div className="field"><label>Bloque</label><select className="input" name="block"><option value="">Sin bloque</option>{(blocks.data ?? []).map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}</select></div>
+              <div className="field wide"><label>Qué pasa</label><input className="input" name="description" /></div>
             </div>
             <button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Añadir paso</button>
           </ActionForm>
         )}
       </section>
 
-      <div className="grid2e">
+      <div className="grid2e anchor" id="formularios">
         <section className="card">
-          <div className="ch"><h2>Nuevo formulario o tarea</h2></div>
-          <ActionForm action={createForm}>
-            <div className="grid2e">
-              <input className="input" name="key" placeholder="clave_unica" required aria-label="Clave" />
-              <input className="input" name="name" placeholder="Nombre visible" required aria-label="Nombre" />
-              <select className="input" name="kind" aria-label="Tipo"><option value="homework">Tarea</option><option value="intake">Cuestionario inicial</option><option value="test">Test</option><option value="feedback">Cierre / feedback</option></select>
-            </div>
-            <textarea className="input" name="schema" defaultValue={FORM_EXAMPLE} style={{ minHeight: 220, fontFamily: "monospace", fontSize: 12 }} aria-label="Estructura (JSON)" />
-            <p className="small muted">Tipos de pregunta: text, textarea, number, scale (min/max), single_choice y multi_choice (options). «scope» de la sección: individual o shared. Si la clave ya existe se crea una versión nueva.</p>
-            <button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Publicar formulario</button>
-          </ActionForm>
+          <div className="ch"><h2>Formularios</h2><Link className="btn soft sm" href="/equipo/formularios/nuevo">+ Crear formulario</Link></div>
+          <p className="muted small" style={{ marginBottom: 12 }}>Los cuestionarios y tareas se construyen en la sección <Link href="/equipo/formularios" style={{ textDecoration: "underline" }}>Formularios</Link>, pregunta por pregunta. Luego se eligen en la actividad.</p>
+          <div className="list">
+            {A.filter((a) => a.form_version_id).map((a) => {
+              const fv = (forms.data ?? []).find((v) => v.id === a.form_version_id);
+              const newest = (forms.data ?? []).find((v) => v.form_id === fv?.form_id);
+              return (
+                <Link className="li" key={a.id} href={fv ? `/equipo/formularios/${fv.form_id}` : "/equipo/formularios"}>
+                  <div className="tx"><b>{fv?.forms?.name ?? "Formulario"} · v{fv?.version}</b><span>Actividad {a.key} · {a.title}</span></div>
+                  {newest && fv && newest.version > fv.version && <span className="chip warn">Hay v{newest.version}</span>}
+                  <span className="btn ghost sm">Abrir</span>
+                </Link>
+              );
+            })}
+            {!A.some((a) => a.form_version_id) && <p className="muted small">Ninguna actividad de esta versión usa formularios.</p>}
+          </div>
         </section>
         <section className="card">
-          <div className="ch"><h2>Nuevo contrato</h2></div>
-          <ActionForm action={createContract}>
-            <input type="hidden" name="service" value={version.service_id} />
-            <input className="input" name="title" placeholder="Título" required aria-label="Título" />
-            <textarea className="input" name="points" placeholder={"Un punto por línea, «Título: texto»\nQué incluye: 10 sesiones…"} aria-label="Puntos clave" />
-            <textarea className="input" name="body" placeholder="Texto completo (admite # títulos y listas con -)" style={{ minHeight: 160 }} aria-label="Texto completo" />
-            <button className="btn soft sm" style={{ alignSelf: "flex-start" }}>Publicar contrato</button>
-          </ActionForm>
+          <div className="ch"><h2>Contratos</h2></div>
+          {(contracts.data ?? []).length > 0 && (
+            <div className="list" style={{ marginBottom: 14 }}>
+              {(contracts.data ?? []).map((c) => (
+                <div className="li" key={c.id}><div className="tx"><b>{c.title} · v{c.version}</b><span>{c.published_at ? `Publicado el ${fmtDay(c.published_at)}` : "Sin publicar"}</span></div></div>
+              ))}
+            </div>
+          )}
+          <details>
+            <summary className="btn soft sm" style={{ display: "inline-flex", cursor: "pointer", listStyle: "none" }}>+ Nuevo contrato</summary>
+            <div style={{ marginTop: 12 }}><ContractForm serviceId={version.service_id} /></div>
+          </details>
         </section>
       </div>
     </>
