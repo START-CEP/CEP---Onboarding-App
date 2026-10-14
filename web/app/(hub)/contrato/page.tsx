@@ -3,7 +3,9 @@ import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { SignForm } from "@/components/sign-form";
 import { getHub } from "@/lib/data/hub";
-import { activityRows } from "@/lib/data/extra";
+import { activityRows, assets } from "@/lib/data/extra";
+import { parseFaq } from "@/lib/activity-config";
+import { Video } from "@/components/video";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDay } from "@/lib/process";
 
@@ -33,6 +35,8 @@ async function Contract() {
     supabase.from("contract_signatures").select("profile_id, signed_at, signer_name").eq("enrollment_id", row.enrollment_id),
   ]);
   const points = (Array.isArray(tpl?.summary_points) ? tpl.summary_points : []) as Point[];
+  const faq = parseFaq(row.config);
+  const faqVideo = row.asset_id ? (await assets([row.asset_id])).get(row.asset_id) : null;
   const signers = hub.members;
   const mySig = sigs?.find((s) => s.profile_id === me.id);
   const allSigned = signers.every((m) => sigs?.some((s) => s.profile_id === m.profileId));
@@ -80,6 +84,22 @@ async function Contract() {
           {!mySig && <SignForm activityId={row.id} defaultName={me.name} />}
         </section>
       </div>
+      {(faq.length > 0 || faqVideo) && (
+        <section className="card">
+          <h2 style={{ marginBottom: 12 }}>Preguntas frecuentes sobre el contrato</h2>
+          <div className="grid2" style={{ alignItems: "start" }}>
+            {faqVideo && <Video asset={faqVideo} title="Preguntas frecuentes sobre el contrato" />}
+            <div className="list">
+              {faq.map((f) => (
+                <details key={f.q} className="modextra">
+                  <summary><Icon name="chat" size={16} /><b>{f.q}</b></summary>
+                  <p className="muted">{f.a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
       <section className="card">
         <h2 style={{ marginBottom: 12 }}>Texto completo</h2>
         <Markdown text={tpl?.body_md ?? ""} />

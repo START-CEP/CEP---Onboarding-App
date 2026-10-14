@@ -7,6 +7,10 @@ import { bunnyEmbedUrl } from "@/lib/bunny";
 import { getHub } from "@/lib/data/hub";
 import { getModules, type ModuleDetail, type ModuleItem } from "@/lib/data/modules";
 import { firstName, fmtDay } from "@/lib/process";
+import { extrasPlan, parseItems } from "@/lib/activity-config";
+import { assets, signedContentUrl } from "@/lib/data/extra";
+import { Video as AssetVideo } from "@/components/video";
+import type { Json } from "@/lib/database.types";
 
 export const metadata: Metadata = { title: "Módulos · CEP" };
 
@@ -68,17 +72,18 @@ async function Modules({ searchParams }: { searchParams: PageProps<"/modulos">["
             })}
           </div>
         </section>
-        {detail ? <Detail d={detail} items={items} tab={tab} meId={me.id} partner={partner ? firstName(partner.name) : undefined} /> : <section className="card empty">Este servicio no tiene módulos en video.</section>}
+        {detail ? <Detail d={detail} items={items} extras={<Extras d={detail} config={hub.configs[detail.activityId]} />} tab={tab} meId={me.id} partner={partner ? firstName(partner.name) : undefined} /> : <section className="card empty">Este servicio no tiene módulos en video.</section>}
       </div>
     </>
   );
 }
 
-function Detail({ d, items, tab, meId, partner }: { d: ModuleDetail; items: ModuleItem[]; tab: "online" | "pdf"; meId: string; partner?: string }) {
+function Detail({ d, items, extras, tab, meId, partner }: { d: ModuleDetail; items: ModuleItem[]; extras: React.ReactNode; tab: "online" | "pdf"; meId: string; partner?: string }) {
   const locked = d.status === "locked";
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
       <Video d={d} />
+      {extras}
       <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
         {!locked && <MarkViewed key={d.activityId} activityId={d.activityId} moduleKey={d.key} done={d.viewedByMe} />}
         {partner && d.partnerViewed !== null && (
@@ -167,5 +172,36 @@ function Video({ d }: { d: ModuleDetail }) {
         <span>{locked ? "Se abre al cumplir su requisito" : d.video?.kind === "bunny" ? (d.video.ready ? "Video no disponible" : "Procesando video…") : "Video pendiente de subir"}</span>
       </div>
     </div>
+  );
+}
+
+/** Más contenidos del módulo (p. ej. un segundo video o un PDF), configurados en el servicio. */
+async function Extras({ d, config }: { d: ModuleDetail; config: Json | undefined }) {
+  const items = parseItems(config);
+  if (items.length === 0) return null;
+  const locked = d.status === "locked";
+  const map = locked ? new Map() : await assets(items.map((i) => i.asset_id));
+  const plan = extrasPlan(items, map, locked);
+  const links = new Map(await Promise.all(plan.filter((p) => p.kind === "file").map(async (p) =>
+    [p.asset_id, await signedContentUrl(map.get(p.asset_id)?.storage_path, `${p.title || "recurso"}.pdf`)] as const)));
+  return (
+    <section className="card">
+      <h2 style={{ marginBottom: 10 }}>Más contenido de este módulo</h2>
+      <div className="list">
+        {plan.map((p, i) => (
+          <details key={`${p.asset_id}-${i}`} className="modextra">
+            <summary>
+              <Icon name={p.kind === "locked" ? "lock" : p.kind === "video" ? "play" : "book"} size={16} />
+              <b>{p.title || (p.kind === "video" ? "Video" : "Recurso")}</b>
+              <span className="small muted">{p.kind === "locked" ? "Se abre al cumplir su requisito" : p.kind === "video" ? "Video" : p.kind === "file" ? "Para descargar" : "Pendiente de subir"}</span>
+            </summary>
+            {p.kind === "video" && <AssetVideo asset={map.get(p.asset_id)} title={p.title || d.title} />}
+            {p.kind === "file" && (links.get(p.asset_id)
+              ? <a className="btn soft sm" href={links.get(p.asset_id)!} target="_blank" rel="noreferrer">Descargar</a>
+              : <span className="chip">Pendiente de subir</span>)}
+          </details>
+        ))}
+      </div>
+    </section>
   );
 }

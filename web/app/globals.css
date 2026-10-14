@@ -418,3 +418,4 @@ a.who:hover{background:var(--surface2)}
 .msg{padding:10px 12px;border-radius:12px;max-width:85%;white-space:pre-wrap;display:flex;flex-direction:column;gap:4px}
 .msg.me{background:var(--surface2);align-self:flex-end}
 .msg.team{background:var(--accent-soft);align-self:flex-start}
+.modextra{border-top:1px solid var(--line);padding:10px 0}.modextra summary{display:flex;gap:10px;align-items:center;cursor:pointer;flex-wrap:wrap}.modextra[open] summary{margin-bottom:10px}

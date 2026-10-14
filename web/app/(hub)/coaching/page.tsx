@@ -4,7 +4,7 @@ import { Icon } from "@/components/icon";
 import { AskQuestion, DownloadLink } from "@/components/session-forms";
 import { Video } from "@/components/video";
 import { getHub } from "@/lib/data/hub";
-import { assets, signedContentUrl } from "@/lib/data/extra";
+import { activityRows, assets, signedContentUrl } from "@/lib/data/extra";
 import { createClient } from "@/lib/supabase/server";
 import { fmtDay, fmtTime, groupTitle, nextGroupSession } from "@/lib/process";
 
@@ -37,6 +37,9 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
     return [r.id, await signedContentUrl(a?.storage_path, `${r.title}.pdf`)] as const;
   })));
 
+  const cg = hub.activities.find((a) => a.type === "group_session");
+  const [cgRow] = cg?.activity_id ? await activityRows([cg.activity_id]) : [];
+  const introVideo = cgRow?.asset_id ? (await assets([cgRow.asset_id])).get(cgRow.asset_id) : null;
   const next = nextGroupSession(hub);
   const watch = typeof sp.ver === "string" ? sp.ver : null;
   const watching = watch ? hub.groupSessions.find((g) => g.id === watch) : null;
@@ -53,6 +56,15 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
         </div>
         <span className="chip info">{held} de {hub.groupSessions.length} realizados</span>
       </div>
+      {(introVideo || cgRow?.summary) && (
+        <section className="card">
+          <h2 style={{ marginBottom: 12 }}>Qué es el coaching grupal</h2>
+          <div className="grid2" style={{ alignItems: "start" }}>
+            {introVideo && <Video asset={introVideo} title="Qué es el coaching grupal" />}
+            {cgRow?.summary && <p className="muted" style={{ whiteSpace: "pre-wrap" }}>{cgRow.summary}</p>}
+          </div>
+        </section>
+      )}
       {watching && (
         <section className="card qblock">
           <div className="ch" style={{ margin: 0 }}>

@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import type { Database } from "@/lib/database.types";
+import type { Database, Json } from "@/lib/database.types";
 
 type Views = Database["public"]["Views"];
 type Tables = Database["public"]["Tables"];
@@ -35,6 +35,8 @@ export type Hub = {
   mine: { viewed: string[]; submitted: string[] };
   /** Formularios de onboarding (forms.kind = 'profile'): tienen su propia página, no van en la Radiografía. */
   onboardingForms: string[];
+  /** config de cada actividad de la inscripción (tipo de sesión, contenidos extra, preguntas frecuentes…). */
+  configs: Record<string, Json>;
   today: Date;
 };
 
@@ -78,7 +80,7 @@ export const getHub = cache(async (): Promise<{ me: { id: string; name: string }
       supabase.from("enrollment_staff").select("care_role_id, care_roles(key, name), profiles(full_name)").eq("enrollment_id", eid),
       supabase.from("activity_progress").select("enrollment_activity_id").eq("profile_id", uid).eq("status", "completed"),
       supabase.from("form_submissions").select("enrollment_activity_id").eq("enrollment_id", eid).eq("submitted_by", uid).eq("status", "submitted"),
-      supabase.from("enrollment_activities").select("id, form_versions(forms(kind))").eq("enrollment_id", eid).eq("type", "form"),
+      supabase.from("enrollment_activities").select("id, type, config, form_versions(forms(kind))").eq("enrollment_id", eid),
     ]);
 
   return {
@@ -109,7 +111,8 @@ export const getHub = cache(async (): Promise<{ me: { id: string; name: string }
         viewed: (myProgress.data ?? []).map((p) => p.enrollment_activity_id),
         submitted: (mySubs.data ?? []).map((p) => p.enrollment_activity_id),
       },
-      onboardingForms: (forms.data ?? []).filter((f) => f.form_versions?.forms?.kind === "profile").map((f) => f.id),
+      onboardingForms: (forms.data ?? []).filter((f) => f.type === "form" && f.form_versions?.forms?.kind === "profile").map((f) => f.id),
+      configs: Object.fromEntries((forms.data ?? []).map((f) => [f.id, f.config])),
       today: new Date(),
     },
   };

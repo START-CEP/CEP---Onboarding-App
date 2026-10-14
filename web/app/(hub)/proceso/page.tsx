@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fragment, Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { Reqs } from "@/components/reqs";
+import { sessionLabel } from "@/lib/activity-config";
 import { getHub } from "@/lib/data/hub";
 import { firstName, roleClass, staffFor, stepRequirements, stepTone } from "@/lib/process";
 
@@ -49,11 +50,12 @@ async function Steps() {
           return (
             <Fragment key={s.step_id}>
               {head}
-              <div className={`vstep ${tone}`}>
+              <div className={`vstep ${tone}`} id={`paso-${s.position}`} style={{ scrollMarginTop: 90 }}>
                 <span className="dotn">{tone === "d" ? <Icon name="check" size={16} /> : tone === "x" ? "!" : s.position}</span>
                 <div className="body">
                   <div className="top3">
                     <b>{s.title}</b>
+                    {s.activity_type === "therapy_session" && <span className="chip">{sessionLabel(hub.configs[s.activity_id ?? ""], s.participants)}</span>}
                     {staff && (
                       <span className={`whochip ${roleClass(staff.roleKey)}`}><i>{staff.personName.charAt(0)}</i>{firstName(staff.personName)}</span>
                     )}

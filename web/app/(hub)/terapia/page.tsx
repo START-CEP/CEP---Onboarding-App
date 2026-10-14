@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { Reqs } from "@/components/reqs";
+import { sessionLabel } from "@/lib/activity-config";
 import { RequestSession } from "@/components/session-forms";
 import { getHub } from "@/lib/data/hub";
 import { activityRows, avatarUrl } from "@/lib/data/extra";
@@ -81,6 +82,7 @@ async function Therapy() {
                   <div className={`sessrow ${state}`}>
                     <span className="n">{a.key}</span>
                     <div className="tx">
+                      <span className="eyebrow" style={{ margin: 0 }}>{sessionLabel(hub.configs[a.activity_id ?? ""], a.participants)}</span>
                       <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
                         <b>{a.title}</b>
                         {staff && <span className={`whochip ${roleClass(staff.roleKey)}`}><i>{staff.personName.charAt(0)}</i>{firstName(staff.personName)}</span>}

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { Reqs } from "@/components/reqs";
+import { sessionLabel } from "@/lib/activity-config";
 import { getHub, type Hub } from "@/lib/data/hub";
 import { getStaff } from "@/lib/data/staff";
 import {
@@ -169,11 +170,11 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
             const isSession = s.activity_type === "therapy_session";
             const st = s.state === "completed" ? "d" : s.state === "current" ? "n" : "f";
             return (
-              <div key={s.step_id} className={`c ${st}${isSession ? ` ses ${roleClass(staff?.roleKey)}` : ""}`}
-                title={`Paso ${s.position} · ${s.title}${isSession && staff ? ` · con ${staff.personName}` : ""}`}>
+              <Link key={s.step_id} href={`/proceso#paso-${s.position}`} className={`c ${st}${isSession ? ` ses ${roleClass(staff?.roleKey)}` : ""}`}
+                title={`Paso ${s.position} · ${isSession ? `${sessionLabel(hub.configs[s.activity_id ?? ""], s.participants)} · ` : ""}${s.title}${isSession && staff ? ` (${staff.personName})` : ""}`}>
                 {stepLabel(s)}
                 <small>{isSession ? firstName(staff?.personName ?? "") : `Paso ${s.position}`}</small>
-              </div>
+              </Link>
             );
           })}
         </div>

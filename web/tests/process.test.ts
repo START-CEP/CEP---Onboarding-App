@@ -12,7 +12,7 @@ function hub(over: Partial<Hub> = {}): Hub {
     members: [{ profileId: "u1", memberIndex: 1, name: "Pedro Demo" }, { profileId: "u2", memberIndex: 2, name: "Andrea Demo" }],
     steps: [], requirements: [], activities: [], tracks: [], group: null, groupSessions: [], sessions: [],
     staff: [{ careRoleId: "r1", roleKey: "lead_therapist", roleName: "Terapeuta", personName: "Emilia Ruiz" }],
-    mine: { viewed: [], submitted: [] }, onboardingForms: [], today,
+    mine: { viewed: [], submitted: [] }, onboardingForms: [], configs: {}, today,
     ...over,
   };
 }
