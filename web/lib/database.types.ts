@@ -1052,7 +1052,6 @@ export type Database = {
           access_until: string | null
           created_at: string
           id: string
-          notes_internal: string | null
           service_version_id: string
           sold_by: string | null
           starts_on: string
@@ -1064,7 +1063,6 @@ export type Database = {
           access_until?: string | null
           created_at?: string
           id?: string
-          notes_internal?: string | null
           service_version_id: string
           sold_by?: string | null
           starts_on: string
@@ -1076,7 +1074,6 @@ export type Database = {
           access_until?: string | null
           created_at?: string
           id?: string
-          notes_internal?: string | null
           service_version_id?: string
           sold_by?: string | null
           starts_on?: string
@@ -3072,6 +3069,13 @@ export type Database = {
           p_version_id: string
         }
         Returns: string
+      }
+      find_auth_user: {
+        Args: { p_email: string }
+        Returns: {
+          email_confirmed: boolean
+          id: string
+        }[]
       }
       generate_followups: { Args: never; Returns: number }
       publish_service_version: {

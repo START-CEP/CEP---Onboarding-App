@@ -25,6 +25,7 @@ export async function scheduleSession(activityId: string, sessionId: string | nu
   const { supabase, uid } = await staffSession();
   const when = new Date(whenIso);
   if (Number.isNaN(when.getTime())) return { error: "Elige fecha y hora." };
+  if (meetingUrl.trim() && !/^https:\/\/\S+$/i.test(meetingUrl.trim())) return { error: "El enlace tiene que empezar por https://." };
   const fields = { scheduled_at: when.toISOString(), meeting_url: meetingUrl.trim() || null, status: "scheduled" as const, staff_profile_id: uid };
   if (sessionId) {
     const { error } = await supabase.from("enrollment_sessions").update(fields).eq("id", sessionId);

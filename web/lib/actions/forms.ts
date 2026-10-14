@@ -5,6 +5,7 @@ import { getStaff } from "@/lib/data/staff";
 import { createClient } from "@/lib/supabase/server";
 import { cleanSchema, FORM_KINDS, schemaProblem, type Section } from "@/lib/forms";
 import type { Json } from "@/lib/database.types";
+import { dbMessage } from "@/lib/db-errors";
 
 // Constructor de formularios (solo admin). Cada publicación crea una versión nueva e inmutable:
 // las actividades apuntan a una versión concreta, así que las parejas en curso no ven cambios.
@@ -41,7 +42,7 @@ export async function publishForm(input: { formId: string | null; name: string; 
   const { data: last } = await supabase.from("form_versions").select("version").eq("form_id", formId).order("version", { ascending: false }).limit(1);
   const version = (last?.[0]?.version ?? 0) + 1;
   const { error } = await supabase.from("form_versions").insert({ form_id: formId, version, schema, published_at: new Date().toISOString() });
-  if (error) return { error: `No pudimos publicar la versión (${error.message}).`, formId };
+  if (error) return { error: `No pudimos publicar la versión. ${dbMessage(error) ?? ""}`.trim(), formId };
   refresh();
   return { formId, version };
 }

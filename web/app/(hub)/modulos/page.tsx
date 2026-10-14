@@ -127,10 +127,13 @@ function tabStyle(on: boolean): React.CSSProperties {
 }
 
 function Video({ d }: { d: ModuleDetail }) {
-  if (d.video?.kind === "bunny" && d.video.ready) {
+  // Un módulo bloqueado no recibe la URL firmada del video, aunque se pida por la dirección (?m=).
+  const locked = d.status === "locked";
+  const src = !locked && d.video?.kind === "bunny" && d.video.ready ? bunnyEmbedUrl(d.video.libraryId, d.video.videoId) : null;
+  if (src) {
     return (
       <div className="video" style={{ display: "block" }}>
-        <iframe src={bunnyEmbedUrl(d.video.libraryId, d.video.videoId)} title={d.title} loading="lazy"
+        <iframe src={src} title={d.title} loading="lazy"
           allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture" allowFullScreen
           style={{ border: 0, position: "absolute", inset: 0, width: "100%", height: "100%" }} />
       </div>
@@ -141,7 +144,7 @@ function Video({ d }: { d: ModuleDetail }) {
       <span className="play"><Icon name={d.status === "locked" ? "lock" : "play"} size={26} /></span>
       <div className="cap">
         <span>{d.title}</span>
-        <span>{d.video?.kind === "bunny" ? "Procesando video…" : "Video pendiente de subir"}</span>
+        <span>{locked ? "Se abre al cumplir su requisito" : d.video?.kind === "bunny" ? (d.video.ready ? "Video no disponible" : "Procesando video…") : "Video pendiente de subir"}</span>
       </div>
     </div>
   );

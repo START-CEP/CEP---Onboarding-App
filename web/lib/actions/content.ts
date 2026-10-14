@@ -127,14 +127,18 @@ export async function removeResource(resourceId: string): Promise<Result> {
 }
 
 // ---------------------------------------------------------------- coaching grupal (equipo)
+// Coaching grupal: equipo de cuidado (admin, clínico o asistente); ventas no.
 async function staffOnly() {
   const staff = await getStaff();
-  if (!staff) throw new Error("Solo el equipo.");
+  if (!staff?.roles.some((r) => r === "admin" || r === "clinician" || r === "assistant")) throw new Error("Solo el equipo de cuidado.");
   return { staff, supabase: await createClient() };
 }
 
+const httpsUrl = (v: string) => /^https:\/\/\S+$/i.test(v);
+
 export async function updateGroupSession(id: string, fields: { meetingUrl?: string; status?: "scheduled" | "completed" | "cancelled"; whenIso?: string; title?: string }): Promise<Result> {
   const { supabase } = await staffOnly();
+  if (fields.meetingUrl?.trim() && !httpsUrl(fields.meetingUrl.trim())) return { error: "El enlace tiene que empezar por https://." };
   const { error } = await supabase.from("group_sessions").update({
     ...(fields.meetingUrl !== undefined ? { meeting_url: fields.meetingUrl.trim() || null } : {}),
     ...(fields.status ? { status: fields.status } : {}),

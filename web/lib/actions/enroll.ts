@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getStaff } from "@/lib/data/staff";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { origin } from "@/lib/actions/account";
+import { siteUrl } from "@/lib/site-url";
 
 export type EnrollState = { error?: string };
 
@@ -49,9 +49,18 @@ export async function enrollCouple(_prev: EnrollState, formData: FormData): Prom
     const ok = new Set((valid ?? []).map((v) => v.profile_id));
     if (staffIds.some((sid) => !ok.has(sid))) return { error: "Alguna persona asignada al equipo no es del equipo clínico." };
   }
+  // Las cuentas se buscan en Auth (fuente de verdad del correo), no en profiles.
+  const accounts = new Map<string, { id: string; email_confirmed: boolean }>();
   for (const m of members) {
-    const { data: existing } = await admin.from("profiles").select("id").eq("email", m.email).maybeSingle();
+    const { data: found, error: findError } = await admin.rpc("find_auth_user", { p_email: m.email });
+    if (findError) return { error: "No pudimos comprobar las cuentas. Inténtalo de nuevo." };
+    const existing = found?.[0];
     if (!existing) continue;
+    accounts.set(m.email, existing);
+    // Una cuenta que nunca confirmó su correo pudo crearla otra persona: la revisa un admin.
+    if (!existing.email_confirmed && !staff.isAdmin) {
+      return { error: `${m.email} tiene una cuenta sin confirmar; pídele a un admin que la revise.` };
+    }
     const { data: isStaff } = await admin.from("staff_roles").select("role").eq("profile_id", existing.id).limit(1);
     if (isStaff?.length) return { error: `${m.email} es una cuenta del equipo; usa otro correo para la pareja.` };
     if (!staff.isAdmin) {
@@ -61,16 +70,16 @@ export async function enrollCouple(_prev: EnrollState, formData: FormData): Prom
     }
   }
 
-  const redirectTo = `${await origin()}/auth/aceptar?next=/cuenta/contrasena`;
+  const redirectTo = `${siteUrl()}/auth/aceptar?next=/cuenta/contrasena`;
   const ids: string[] = [];
   for (const m of members) {
-    const { data: existing } = await admin.from("profiles").select("id").eq("email", m.email).maybeSingle();
+    const existing = accounts.get(m.email);
     if (existing) {
       ids.push(existing.id);
       continue;
     }
     const { data: invited, error } = await admin.auth.admin.inviteUserByEmail(m.email, { data: { full_name: m.name }, redirectTo });
-    if (error || !invited.user) return { error: `No pudimos invitar a ${m.email}: ${error?.message ?? "error desconocido"}.` };
+    if (error || !invited.user) return { error: `No pudimos invitar a ${m.email}. Revisa el correo e inténtalo de nuevo.` };
     await admin.from("profiles").update({ full_name: m.name }).eq("id", invited.user.id);
     ids.push(invited.user.id);
   }
@@ -86,6 +95,10 @@ export async function enrollCouple(_prev: EnrollState, formData: FormData): Prom
   const { data: enrollmentId, error: enrollError } = await supabase.rpc("enroll_unit", {
     p_unit_id: unit.id, p_version_id: versionId, p_starts_on: startsOn, p_staff: staffMap,
   });
-  if (enrollError || !enrollmentId) return { error: `No pudimos inscribir: ${enrollError?.message ?? "error"}.` };
+  if (enrollError || !enrollmentId) {
+    // Los errores de enroll_unit con código 42501/P0001 son mensajes propios en español; el resto no se muestra.
+    const own = enrollError && (enrollError.code === "42501" || enrollError.code === "P0001");
+    return { error: own ? enrollError.message : "No pudimos inscribir. Inténtalo de nuevo." };
+  }
   redirect(`/equipo/parejas/${enrollmentId}`);
 }

@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getStaff } from "@/lib/data/staff";
 import { createClient } from "@/lib/supabase/server";
 import type { Database, Json } from "@/lib/database.types";
+import { dbMessage } from "@/lib/db-errors";
 
 // Constructor de servicios (solo admin). Todo se edita en un borrador; publicar crea una versión inmutable.
 export type FormState = { error?: string; ok?: string };
@@ -20,7 +21,11 @@ const s = (fd: FormData, k: string) => String(fd.get(k) ?? "").trim();
 const n = (fd: FormData, k: string) => (s(fd, k) === "" ? null : Number(s(fd, k)));
 const orNull = (v: string) => (v === "" ? null : v);
 const ok = (msg = "Guardado."): FormState => { refresh(); return { ok: msg }; };
-const fail = (error: { message: string } | null, msg: string): FormState | null => (error ? { error: `${msg} (${error.message})` } : null);
+const fail = (error: { code?: string; message: string } | null, msg: string): FormState | null => {
+  if (!error) return null;
+  const why = dbMessage(error);
+  return { error: why ? `${msg} ${why}` : msg };
+};
 
 export async function createService(_p: FormState, fd: FormData): Promise<FormState> {
   const supabase = await admin();
@@ -68,7 +73,7 @@ export async function duplicateAsNewService(_p: FormState, fd: FormData): Promis
 export async function publishVersion(_p: FormState, fd: FormData): Promise<FormState> {
   const supabase = await admin();
   const { error } = await supabase.rpc("publish_service_version", { p_version: s(fd, "version") });
-  if (error) return { error: `No se puede publicar: ${error.message}` };
+  if (error) return { error: `No se puede publicar. ${dbMessage(error) ?? "Revisa el servicio e inténtalo de nuevo."}` };
   return ok("Versión publicada. Las inscripciones nuevas usarán esta versión.");
 }
 
@@ -124,7 +129,7 @@ export async function deleteRow(_p: FormState, fd: FormData): Promise<FormState>
   const table = s(fd, "table") as "service_blocks" | "service_tracks" | "service_activities" | "service_steps" | "service_requirements";
   if (!["service_blocks", "service_tracks", "service_activities", "service_steps", "service_requirements"].includes(table)) return { error: "Tabla no válida." };
   const { error } = await supabase.from(table).delete().eq("id", s(fd, "id"));
-  if (error) return { error: error.code === "23503" ? "No se puede borrar: otra parte del servicio lo usa (un paso o un requisito)." : `No pudimos borrar (${error.message}).` };
+  if (error) return { error: error.code === "23503" ? "No se puede borrar: otra parte del servicio lo usa (un paso o un requisito)." : `No pudimos borrar. ${dbMessage(error) ?? ""}`.trim() };
   if (table === "service_steps") await renumberSteps(supabase, s(fd, "version"));
   return ok("Borrado.");
 }
