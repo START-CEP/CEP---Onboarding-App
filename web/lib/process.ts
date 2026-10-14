@@ -56,9 +56,9 @@ export function fmtTime(date: string | Date) {
 }
 
 // ---------------------------------------------------------------- requisitos y "qué hacer hoy"
-export type Action = { title: string; why: string; icon: IconName; href: string; minutes?: number | null };
+export type Action = { title: string; why: string; icon: IconName; href: string; minutes?: number | null; cta: string };
 
-function hrefFor(hub: Hub, type: ActivityRow["type"], activityId?: string | null) {
+export function hrefFor(hub: Hub, type: ActivityRow["type"], activityId?: string | null) {
   if (activityId && hub.onboardingForms.includes(activityId)) return "/onboarding";
   switch (type) {
     case "video_module":
@@ -73,7 +73,7 @@ function hrefFor(hub: Hub, type: ActivityRow["type"], activityId?: string | null
     case "group_session":
       return "/coaching";
     default:
-      return "/pasos";
+      return "/proceso";
   }
 }
 
@@ -98,24 +98,24 @@ function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Acti
   const partner = hub.members.find((m) => m.profileId !== hub.me.id);
   if (perMember && myPartDone && partner) {
     const what = r.criterion === "viewed" ? `vea el ${short}` : r.criterion === "task_submitted" ? `entregue la tarea del ${short}` : `responda ${short}`;
-    return { ...base, title: `Falta que ${firstName(partner.name)} ${what}`, why: `Tú ya hiciste tu parte. ${why}.`, icon: "users" };
+    return { ...base, title: `Falta que ${firstName(partner.name)} ${what}`, why: `Tú ya hiciste tu parte. ${why}.`, icon: "users", cta: "Ver detalle" };
   }
 
   switch (r.criterion) {
     case "task_submitted":
       return act?.task_pending
-        ? { ...base, title: `Entregar la tarea del ${short}`, icon: "pen" }
-        : { ...base, title: `Ver el ${short} y entregar su tarea`, icon: "play" };
+        ? { ...base, title: `Entregar la tarea del ${short}`, icon: "pen", cta: "Entregar tarea" }
+        : { ...base, title: `Ver el ${short} y entregar su tarea`, icon: "play", cta: "Ver ahora" };
     case "viewed":
-      return { ...base, title: `Ver el ${title}`, icon: "play" };
+      return { ...base, title: `Ver el ${title}`, icon: "play", cta: "Ver ahora" };
     case "form_submitted":
-      return { ...base, title: `Responder: ${title}`, icon: "pulse" };
+      return { ...base, title: `Responder: ${title}`, icon: "pulse", cta: "Responder ahora" };
     case "signed":
-      return { ...base, title: "Firmar el contrato", icon: "pen" };
+      return { ...base, title: "Firmar el contrato", icon: "pen", cta: "Firmar ahora" };
     case "attended":
-      return { ...base, title: `Asistir a ${title}`, icon: "cal" };
+      return { ...base, title: `Asistir a ${title}`, icon: "cal", cta: "Ver detalle" };
     default:
-      return { ...base, title: `El equipo está completando: ${title}`, icon: "clock", href: "/pasos" };
+      return { ...base, title: `El equipo está completando: ${title}`, icon: "clock", href: "/proceso", cta: "Ver el proceso" };
   }
 }
 
@@ -136,16 +136,16 @@ export function todayActions(hub: Hub): Action[] {
     if (unmet.length === 0) {
       const who = staffFor(hub, step.responsible_role_id)?.personName;
       if (step.activity_type === "therapy_session") {
-        actions.push({ title: `Agendar su ${step.activity_key}${who ? ` con ${who}` : ""}`, why: step.description ?? "", icon: "cal", href: "/terapia" });
+        actions.push({ title: `Agendar su ${step.activity_key}${who ? ` con ${who}` : ""}`, why: step.description ?? "", icon: "cal", href: `/terapia#${step.activity_key}`, cta: "Agendar" });
       } else {
         const act = hub.activities.find((a) => a.activity_id === step.activity_id);
-        actions.push({ title: step.title ?? "", why: step.description ?? "", icon: act?.type === "video_module" ? "play" : "route", href: hrefFor(hub, act?.type ?? "checklist", act?.activity_id), minutes: act?.estimated_minutes });
+        actions.push({ title: step.title ?? "", why: step.description ?? "", icon: act?.type === "video_module" ? "play" : "route", href: hrefFor(hub, act?.type ?? "checklist", act?.activity_id), minutes: act?.estimated_minutes, cta: act?.type === "video_module" ? "Ver ahora" : "Ir ahora" });
       }
     }
   }
   const next = nextGroupSession(hub);
   if (next && new Date(next.scheduled_at).getTime() - hub.today.getTime() < 14 * DAY) {
-    actions.push({ title: "Dejar su pregunta para el coaching grupal", why: `Próximo coaching: ${fmtDay(next.scheduled_at)} · ${fmtTime(next.scheduled_at)}`, icon: "chat", href: "/coaching", minutes: 2 });
+    actions.push({ title: "Dejar su pregunta para el coaching grupal", why: `Próximo coaching: ${fmtDay(next.scheduled_at)} · ${fmtTime(next.scheduled_at)}`, icon: "chat", href: "/coaching#pregunta", minutes: 2, cta: "Escribir mi pregunta" });
   }
   return actions;
 }
@@ -278,4 +278,79 @@ export function blocksOf(hub: Hub) {
     if (s.step_id === step?.step_id) blocks.at(-1)!.current = true;
   });
   return blocks;
+}
+
+// ---------------------------------------------------------------- inicio: próxima sesión y agenda
+export type SessionInfo = {
+  title: string; staffName?: string; roleKey?: string; when: string | null; days: number | null;
+  state: "booked" | "requested" | "ready" | "blocked"; cta: { label: string; href: string };
+};
+
+/** La sesión de terapia que sigue (la del paso actual o la próxima pendiente) y qué pueden hacer con ella. */
+export function nextSessionInfo(hub: Hub): SessionInfo | null {
+  const pending = hub.steps.filter((s) => s.activity_type === "therapy_session" && s.state !== "completed");
+  const step = pending.find((s) => s.state === "current") ?? pending[0];
+  if (!step) return null;
+  const staff = staffFor(hub, step.responsible_role_id);
+  const live = hub.sessions.find((x) => x.enrollment_activity_id === step.activity_id && x.status !== "cancelled" && x.status !== "completed");
+  const base = { title: step.activity_key ? `${step.activity_key} · ${step.title ?? ""}` : step.title ?? "", staffName: staff?.personName, roleKey: staff?.roleKey };
+  const anchor = `/terapia#${step.activity_key ?? ""}`;
+  if (live?.scheduled_at && live.status === "scheduled") {
+    const days = Math.max(0, Math.round((startOfDay(new Date(live.scheduled_at)).getTime() - startOfDay(hub.today).getTime()) / DAY));
+    const joinable = days === 0 && live.meeting_url;
+    return { ...base, when: live.scheduled_at, days, state: "booked",
+      cta: joinable ? { label: "Entrar a la sesión", href: live.meeting_url! } : { label: "Añadir al calendario", href: `/calendario/sesion/${live.id}` } };
+  }
+  if (live?.status === "requested") return { ...base, when: null, days: null, state: "requested", cta: { label: "Ver solicitud", href: anchor } };
+  if ((step.blocking_unmet ?? 0) > 0) return { ...base, when: null, days: null, state: "blocked", cta: { label: "Ver qué falta", href: anchor } };
+  return { ...base, when: null, days: null, state: "ready", cta: { label: "Agendar", href: anchor } };
+}
+
+export type UpcomingItem = { d: string; sm: string; t: string; s: string; role?: string; who?: string; cta?: { label: string; href: string } };
+
+export function upcoming(hub: Hub): UpcomingItem[] {
+  const items: UpcomingItem[] = [];
+  const info = nextSessionInfo(hub);
+  if (info) {
+    const step = hub.steps.find((s) => s.activity_type === "therapy_session" && s.state !== "completed");
+    items.push({
+      d: info.when ? fmtDay(info.when) : step?.activity_key ?? "",
+      sm: info.when ? fmtTime(info.when) : info.state === "requested" ? "solicitada" : info.state === "blocked" ? "por agendar" : "lista para agendar",
+      t: info.title, s: info.staffName ? `Con ${info.staffName}` : "", role: info.roleKey, who: info.staffName, cta: info.cta,
+    });
+  }
+  const g = nextGroupSession(hub);
+  if (g) {
+    const isToday = new Date(g.scheduled_at).toDateString() === hub.today.toDateString();
+    items.push({ d: fmtDay(g.scheduled_at), sm: `${isToday ? "hoy · " : ""}${fmtTime(g.scheduled_at)}`, t: "Sesión de coaching grupal", s: "",
+      cta: { label: "Añadir al calendario", href: `/calendario/coaching/${g.id}` } });
+  }
+  return items;
+}
+
+/** Título visible de un coaching: el real solo cuando ya se hizo. */
+export const groupTitle = (g: { title: string | null; status: string }) => (g.status === "completed" && g.title ? g.title : "Sesión de coaching grupal");
+
+// ---------------------------------------------------------------- semáforo y menú
+/** d hecho (verde) · n lo que sigue (naranja) · x atrasado (rojo) · l por venir (gris) */
+export function stepTone(hub: Hub, step: StepRow): "d" | "n" | "x" | "l" {
+  if (step.state === "completed") return "d";
+  const act = hub.activities.find((a) => a.activity_id === step.activity_id);
+  const late = Boolean(act?.suggested_on) && act!.suggested_on! < hub.today.toISOString().slice(0, 10);
+  if (late) return "x";
+  return step.state === "current" ? "n" : "l";
+}
+
+/** Secciones de un solo uso que salen del menú cuando están completas (o el servicio no las tiene). */
+export function hiddenNav(hub: Hub): string[] {
+  const all = (list: ActivityRow[]) => list.every((a) => a.is_completed); // lista vacía → se oculta
+  const firstTrack = Math.min(...hub.activities.map((a) => a.track_position ?? 99));
+  const forms = hub.activities.filter((a) => a.type === "form");
+  const rules: [string, ActivityRow[]][] = [
+    ["/bienvenida", hub.activities.filter((a) => a.track_position === firstTrack && a.type !== "staff_task" && a.type !== "form" && a.type !== "contract")],
+    ["/onboarding", forms.filter((a) => hub.onboardingForms.includes(a.activity_id ?? ""))],
+    ["/radiografia", forms.filter((a) => !hub.onboardingForms.includes(a.activity_id ?? ""))],
+    ["/contrato", hub.activities.filter((a) => a.type === "contract")],
+  ];
+  return rules.filter(([, list]) => all(list)).map(([href]) => href);
 }

@@ -16,7 +16,7 @@ export type EnrollmentRow = Views["v_enrollment_state"]["Row"];
 export type StaffAssignment = { careRoleId: string; roleKey: string; roleName: string; personName: string };
 export type Member = { profileId: string; memberIndex: number; name: string };
 export type GroupSession = Pick<Tables["group_sessions"]["Row"], "id" | "scheduled_at" | "title" | "status">;
-export type TherapySession = Pick<Tables["enrollment_sessions"]["Row"], "enrollment_activity_id" | "scheduled_at" | "status">;
+export type TherapySession = Pick<Tables["enrollment_sessions"]["Row"], "id" | "enrollment_activity_id" | "scheduled_at" | "status" | "meeting_url">;
 
 export type Hub = {
   me: { id: string; name: string };
@@ -74,7 +74,7 @@ export const getHub = cache(async (): Promise<{ me: { id: string; name: string }
       supabase.from("v_track_progress").select("*").eq("enrollment_id", eid).order("track_position"),
       supabase.from("v_group_progress").select("*").eq("enrollment_id", eid).maybeSingle(),
       supabase.from("group_sessions").select("id, scheduled_at, title, status").order("scheduled_at"),
-      supabase.from("enrollment_sessions").select("enrollment_activity_id, scheduled_at, status").eq("enrollment_id", eid),
+      supabase.from("enrollment_sessions").select("id, enrollment_activity_id, scheduled_at, status, meeting_url").eq("enrollment_id", eid),
       supabase.from("enrollment_staff").select("care_role_id, care_roles(key, name), profiles(full_name)").eq("enrollment_id", eid),
       supabase.from("activity_progress").select("enrollment_activity_id").eq("profile_id", uid).eq("status", "completed"),
       supabase.from("form_submissions").select("enrollment_activity_id").eq("enrollment_id", eid).eq("submitted_by", uid).eq("status", "submitted"),
