@@ -2,7 +2,7 @@
 begin;
 set local search_path = public, extensions;
 create extension if not exists pgtap with schema extensions;
-select plan(13);
+select plan(15);
 
 create function pg_temp.as_user(p uuid) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', p, 'role', 'authenticated')::text, true);
@@ -39,6 +39,19 @@ reset role;
 select is((select status from support_tickets where subject = 'Factura'), 'answered', 'La respuesta la marca como respondida');
 select is((select count(*)::int from notifications where title = 'Respondimos su consulta' and created_at > now() - interval '1 minute'), 2,
           'Avisa a los dos miembros de la consulta compartida');
+
+-- Quien ya no es miembro de la inscripción pierde el acceso a las consultas que abrió.
+insert into auth.users (id, email, aud, role) values ('c0000000-0000-4000-8000-000000000031', 'exmiembro@example.com', 'authenticated', 'authenticated');
+insert into support_tickets (enrollment_id, opened_by, subject, is_private)
+  select id, 'c0000000-0000-4000-8000-000000000031', 'Privada antes de salir', true from t_e;
+create temp table t_tk as select id from support_tickets where subject = 'Privada antes de salir';
+grant select on t_tk to authenticated;
+select pg_temp.as_user('c0000000-0000-4000-8000-000000000031');
+set local role authenticated;
+select is((select count(*)::int from support_tickets where subject = 'Privada antes de salir'), 0, 'Quien ya no es miembro no ve sus consultas');
+select throws_ok($$ insert into support_messages (ticket_id, body) values ((select id from t_tk), 'hola') $$,
+                 '42501', null, 'Quien ya no es miembro no puede escribir');
+reset role;
 
 select * from finish();
 rollback;
