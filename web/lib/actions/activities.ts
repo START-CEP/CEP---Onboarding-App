@@ -27,7 +27,7 @@ export async function markViewed(activityId: string): Promise<ActionResult> {
   return { ok: true };
 }
 
-/** Guarda la tarea en línea como borrador o la entrega (lo entregado ya no se puede editar). */
+/** Guarda un formulario (tarea, radiografía, cierre…) como borrador o lo entrega; lo entregado ya no se edita. */
 export async function saveHomework(activityId: string, answers: Record<string, Json>, submit: boolean): Promise<ActionResult> {
   const { supabase, uid } = await session();
   const { data: act } = await supabase
@@ -35,7 +35,7 @@ export async function saveHomework(activityId: string, answers: Record<string, J
     .select("id, enrollment_id, form_version_id, response_scope")
     .eq("id", activityId)
     .single();
-  if (!act?.form_version_id) return { error: "Este módulo no tiene tarea en línea." };
+  if (!act?.form_version_id) return { error: "Esta actividad no tiene formulario en línea." };
 
   const mine = supabase.from("form_submissions").select("id, status").eq("enrollment_activity_id", activityId);
   const { data: existing } = act.response_scope === "shared" ? await mine : await mine.eq("submitted_by", uid);
@@ -43,8 +43,8 @@ export async function saveHomework(activityId: string, answers: Record<string, J
 
   const status = submit ? "submitted" : "draft";
   const draft = existing?.find((s) => s.status === "draft");
-  const { error } = draft
-    ? await supabase.from("form_submissions").update({ answers, status }).eq("id", draft.id)
+  const { data: saved, error } = draft
+    ? await supabase.from("form_submissions").update({ answers, status }).eq("id", draft.id).select("id").single()
     : await supabase.from("form_submissions").insert({
         enrollment_id: act.enrollment_id,
         enrollment_activity_id: activityId,
@@ -53,8 +53,15 @@ export async function saveHomework(activityId: string, answers: Record<string, J
         submitted_by: uid,
         answers,
         status,
-      });
-  if (error) return { error: "No pudimos guardar tu tarea. Inténtalo de nuevo." };
+      }).select("id").single();
+  if (error || !saved) return { error: "No pudimos guardar tus respuestas. Inténtalo de nuevo." };
+  // En una respuesta compartida, quien la envía queda registrado como participante.
+  if (submit && act.response_scope === "shared") {
+    await supabase.from("submission_participants").upsert(
+      { submission_id: saved.id, profile_id: uid, confirmed_at: new Date().toISOString() },
+      { onConflict: "submission_id,profile_id" },
+    );
+  }
   refresh();
   return { ok: true };
 }

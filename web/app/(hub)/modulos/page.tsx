@@ -106,7 +106,7 @@ function Detail({ d, tab, meId, partner }: { d: ModuleDetail; tab: "online" | "p
               <div className="alert info"><Icon name="check" /><div><b>Tarea entregada{d.submitted.submitted_at ? ` el ${fmtDay(d.submitted.submitted_at)}` : ""}.</b> Queda guardada en tu ficha; ya no se puede editar.</div></div>
               {d.uploadedFiles.length > 0
                 ? <p className="muted">Archivo entregado: {d.uploadedFiles.join(", ")}</p>
-                : <HomeworkForm key={`${d.activityId}-sent`} activityId={d.activityId} moduleKey={d.key} sections={d.form.sections} initial={(d.submitted.answers ?? {}) as Record<string, never>} readOnly partnerName={partner} />}
+                : <HomeworkForm key={`${d.activityId}-sent`} activityId={d.activityId} returnTo={`/modulos?m=${encodeURIComponent(d.key)}`} sections={d.form.sections} initial={(d.submitted.answers ?? {}) as Record<string, never>} readOnly partnerName={partner} />}
             </>
           ) : tab === "pdf" ? (
             <>
@@ -114,7 +114,7 @@ function Detail({ d, tab, meId, partner }: { d: ModuleDetail; tab: "online" | "p
               <p className="small muted">¿Les gusta escribir a mano? Completen la tarea en papel y suban la foto o el PDF. Recomendamos la versión en línea: así el equipo la tiene lista antes de la sesión.</p>
             </>
           ) : (
-            <HomeworkForm key={d.activityId} activityId={d.activityId} moduleKey={d.key} sections={d.form.sections} initial={(d.draft?.answers ?? {}) as Record<string, never>} readOnly={false} partnerName={partner} />
+            <HomeworkForm key={d.activityId} activityId={d.activityId} returnTo={`/modulos?m=${encodeURIComponent(d.key)}`} sections={d.form.sections} initial={(d.draft?.answers ?? {}) as Record<string, never>} readOnly={false} partnerName={partner} />
           )}
         </section>
       )}

@@ -6,18 +6,19 @@ import { Icon } from "@/components/icon";
 import { createClient } from "@/lib/supabase/client";
 import type { Json } from "@/lib/database.types";
 import type { Question, Section } from "@/lib/data/modules";
-import { markViewed, registerUpload, saveHomework } from "@/app/(hub)/modulos/actions";
+import { markViewed, registerUpload, saveHomework } from "@/lib/actions/activities";
 
 type Answers = Record<string, Json>;
 
-// Tras guardar, la página se queda en el módulo que se acaba de usar.
-function useStay(moduleKey: string) {
+// Tras guardar, la página se queda donde estaba (p. ej. el módulo que se acaba de usar).
+function useStay(returnTo?: string) {
   const router = useRouter();
-  return () => router.replace(`/modulos?m=${encodeURIComponent(moduleKey)}`, { scroll: false });
+  return () => (returnTo ? router.replace(returnTo, { scroll: false }) : router.refresh());
 }
+const moduleUrl = (key: string) => `/modulos?m=${encodeURIComponent(key)}`;
 
 export function MarkViewed({ activityId, moduleKey, done }: { activityId: string; moduleKey: string; done: boolean }) {
-  const stay = useStay(moduleKey);
+  const stay = useStay(moduleUrl(moduleKey));
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   if (done) return <span className="chip ok"><Icon name="check" size={14} /> Video visto</span>;
@@ -76,17 +77,18 @@ function Field({ q, value, onChange, readOnly }: { q: Question; value: Json | un
   }
 }
 
-export function HomeworkForm({ activityId, moduleKey, sections, initial, readOnly, partnerName }: {
-  activityId: string; moduleKey: string; sections: Section[]; initial: Answers; readOnly: boolean; partnerName?: string;
+export function HomeworkForm({ activityId, returnTo, sections, initial, readOnly, partnerName, submitLabel = "Entregar tarea", sentLabel = "Tarea entregada." }: {
+  activityId: string; returnTo?: string; sections: Section[]; initial: Answers; readOnly: boolean; partnerName?: string;
+  submitLabel?: string; sentLabel?: string;
 }) {
-  const stay = useStay(moduleKey);
+  const stay = useStay(returnTo);
   const [answers, setAnswers] = useState<Answers>(initial);
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<{ ok?: string; error?: string }>({});
   const save = (submit: boolean) =>
     start(async () => {
       const r = await saveHomework(activityId, answers, submit);
-      setMsg(r.error ? { error: r.error } : { ok: submit ? "Tarea entregada." : "Borrador guardado." });
+      setMsg(r.error ? { error: r.error } : { ok: submit ? sentLabel : "Borrador guardado." });
       if (!r.error) stay();
     });
 
@@ -108,7 +110,7 @@ export function HomeworkForm({ activityId, moduleKey, sections, initial, readOnl
       ))}
       {!readOnly && (
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-          <button className="btn" type="submit" disabled={pending}><Icon name="check" size={16} /> Entregar tarea</button>
+          <button className="btn" type="submit" disabled={pending}><Icon name="check" size={16} /> {submitLabel}</button>
           <button className="btn ghost" type="button" disabled={pending} onClick={() => save(false)}>Guardar borrador</button>
           {msg.error && <span className="formerr" role="alert">{msg.error}</span>}
           {msg.ok && <span className="chip ok" role="status">{msg.ok}</span>}
@@ -119,7 +121,7 @@ export function HomeworkForm({ activityId, moduleKey, sections, initial, readOnl
 }
 
 export function UploadHomework({ activityId, moduleKey, folder }: { activityId: string; moduleKey: string; folder: string }) {
-  const stay = useStay(moduleKey);
+  const stay = useStay(moduleUrl(moduleKey));
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
   const onFile = (file: File | undefined) => {
