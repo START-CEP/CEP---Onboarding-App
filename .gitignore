@@ -18,3 +18,4 @@ node_modules/
 
 # Credenciales locales de demo
 *.local.txt
+.superpowers/
