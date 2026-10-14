@@ -7,7 +7,7 @@ import { getHub } from "@/lib/data/hub";
 import { createClient } from "@/lib/supabase/server";
 import { firstName, fmtDay, fmtTime } from "@/lib/process";
 
-export const metadata: Metadata = { title: "Soporte · CEP" };
+export const metadata: Metadata = { title: "Consultas al equipo · CEP" };
 
 const STATUS = { open: ["warn", "Esperando respuesta"], answered: ["info", "Respondida"], closed: ["go", "Resuelta"] } as const;
 
@@ -33,7 +33,7 @@ async function Support() {
     <>
       <div className="ph">
         <div>
-          <p className="eyebrow">Soporte</p>
+          <p className="eyebrow">Consultas</p>
           <h1>Consultas al equipo</h1>
           <p className="lead">Escríbenos aquí cualquier duda (pagos, accesos, agenda…). Queda registro de todo lo que te respondemos.</p>
         </div>
@@ -73,7 +73,7 @@ async function Support() {
         </section>
         <section className="card" style={{ alignSelf: "start" }}>
           <h2 style={{ marginBottom: 12 }}>Nueva consulta</h2>
-          <NewTicket enrollmentId={hub.enrollment.enrollment_id!} couple={hub.members.length > 1} />
+          <NewTicket enrollmentId={hub.enrollment.enrollment_id!} />
         </section>
       </div>
     </>

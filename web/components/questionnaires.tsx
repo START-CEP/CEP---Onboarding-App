@@ -26,7 +26,6 @@ export async function Questionnaires({ onboarding }: { onboarding: boolean }) {
     .select("id, enrollment_activity_id, submitted_by, status, answers, submitted_at")
     .in("enrollment_activity_id", rows.map((r) => r.id))
     .order("created_at", { ascending: false });
-  const partner = hub.members.find((m) => m.profileId !== me.id);
   const nameOf = (id: string) => firstName(hub.members.find((m) => m.profileId === id)?.name ?? "");
 
   // Paso que estos cuestionarios desbloquean (p. ej. la S1).
@@ -50,8 +49,8 @@ export async function Questionnaires({ onboarding }: { onboarding: boolean }) {
         </div>
       </div>
       <div className="alert info">
-        <Icon name="lock" />
-        <div><b>Lo individual es privado.</b> Tus respuestas individuales solo las lee el equipo{partner ? `; ${firstName(partner.name)} no puede verlas` : ""}. Lo que responden en pareja queda en la ficha de los dos.</div>
+        <Icon name="user" />
+        <div><b>Cómo se guardan sus respuestas.</b> Tus respuestas individuales quedan en tu ficha; lo que responden en pareja queda en la ficha de los dos.</div>
       </div>
       {forms.map((f) => {
         const row = rows.find((r) => r.id === f.activity_id)!;
@@ -78,7 +77,7 @@ export async function Questionnaires({ onboarding }: { onboarding: boolean }) {
               sections={sections}
               initial={((sent ?? draft)?.answers ?? {}) as Record<string, never>}
               readOnly={Boolean(sent)}
-              partnerName={partner ? firstName(partner.name) : undefined}
+             
               submitLabel="Enviar respuestas"
               sentLabel="Respuestas enviadas."
             />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
+import { Reqs } from "@/components/reqs";
 import { getHub, type Hub } from "@/lib/data/hub";
 import { getStaff } from "@/lib/data/staff";
 import {
@@ -194,18 +195,7 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
           <span className="k">Lo que puedes avanzar ahora</span>
           <b>{first.title}</b>
           <span className="why">{first.why}</span>
-          {step && reqs.length > 0 && (
-            <div>
-              <span className="small" style={{ color: "#8E9AC0", fontWeight: 700 }}>Para entrar a {stepTarget(hub, step)}:</span>
-              <div className="reqs">
-                {reqs.map((r) => (
-                  <span key={r.id} className={`req ${r.is_met ? "ok" : "no"}`}>
-                    <Icon name={r.is_met ? "check" : "lock"} size={13} /> {r.label ?? r.required_title}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
+          {step && <Reqs reqs={reqs} dark title={`Para ${stepTarget(hub, step)} es importante haber visto y completado:`} />}
           <Link className="btn" href={first.href}>
             {first.cta}{first.minutes ? ` · ${first.minutes} min` : ""} <Icon name="arrow" size={16} />
           </Link>

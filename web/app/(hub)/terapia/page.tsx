@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
+import { Reqs } from "@/components/reqs";
 import { RequestSession } from "@/components/session-forms";
 import { getHub } from "@/lib/data/hub";
 import { activityRows, avatarUrl } from "@/lib/data/extra";
@@ -103,26 +104,15 @@ async function Therapy() {
                           <a className="btn ghost sm" href={`/calendario/sesion/${last.id}`}><Icon name="cal" size={13} /> Añadir al calendario</a>
                         </div>
                       )}
-                      {mine && (items.length > 0 || (state === "next" && row?.summary)) && (
+                      {mine && row?.summary && <span className="small muted">{row.summary}</span>}
+                      {/* «Qué veremos» solo cuando el equipo lo define para esta pareja (depende de cada proceso). */}
+                      {mine && items.length > 0 && (
                         <>
                           <span className="small" style={{ fontWeight: 700, marginTop: 4 }}>Qué veremos</span>
-                          <ul className="agendaitems">
-                            {items.length ? items.map((x, j) => <li key={j}>{x.body}</li>) : <li>{row?.summary}</li>}
-                          </ul>
+                          <ul className="agendaitems">{items.map((x, j) => <li key={j}>{x.body}</li>)}</ul>
                         </>
                       )}
-                      {!a.is_completed && reqs.length > 0 && (
-                        <div>
-                          <span className="small" style={{ fontWeight: 700 }}>Requisito para entrar</span>
-                          <div className="reqs">
-                            {reqs.map((r) => (
-                              <span key={r.id} className={`req ${r.is_met ? "ok" : "no"}`}>
-                                <Icon name={r.is_met ? "check" : "lock"} size={13} /> {r.label ?? r.required_title}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                      {!a.is_completed && <Reqs reqs={reqs} />}
                       {mine && state === "next" && !last && (blocked
                         ? <span className="small muted">Podrán agendarla cuando cumplan el requisito.</span>
                         : <RequestSession activityId={a.activity_id!} label={`Agendar${staff ? ` con ${firstName(staff.personName)}` : ""}`} />)}
@@ -134,6 +124,10 @@ async function Therapy() {
           </div>
         </section>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <section className="card">
+            <h3 style={{ marginBottom: 10 }}>Política de cancelación</h3>
+            <p className="muted">Les pedimos hacer cualquier cambio con más de 72 horas de anticipación. Una sesión que se cancele con menos tiempo, o a la que no se presenten, se descuenta de su paquete; para reagendarla se paga el 50% del precio de una sesión.</p>
+          </section>
           <section className="card">
             <h3 style={{ marginBottom: 10 }}>Ritmo entre sesiones</h3>
             <p className="muted">Las fechas sugeridas son una referencia, no un plazo: el avance lo marca su terapeuta en sesión. Si necesitan una sesión antes, pueden pedirla.</p>
@@ -160,7 +154,7 @@ async function Therapy() {
           </section>
           <section className="card">
             <h3 style={{ marginBottom: 10 }}>¿Necesitan cambiar una fecha?</h3>
-            <p className="muted" style={{ marginBottom: 12 }}>Escríbanle a nuestro asistente con 24 horas de anticipación.</p>
+            <p className="muted" style={{ marginBottom: 12 }}>Con gusto podemos apoyarles. Por favor, hagan cualquier cambio con más de 72 horas de anticipación.</p>
             {wa && <a className="btn" href={wa} target="_blank" rel="noreferrer"><Icon name="chat" size={15} /> Escribir por WhatsApp</a>}
           </section>
         </div>

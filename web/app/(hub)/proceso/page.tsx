@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fragment, Suspense } from "react";
 import { Icon } from "@/components/icon";
+import { Reqs } from "@/components/reqs";
 import { getHub } from "@/lib/data/hub";
 import { firstName, roleClass, staffFor, stepRequirements, stepTone } from "@/lib/process";
 
@@ -26,7 +27,7 @@ async function Steps() {
         <div>
           <p className="eyebrow">El proceso</p>
           <h1>El camino completo: los {hub.steps.length} pasos de su proceso</h1>
-          <p className="lead">Cada paso tiene un responsable y un requisito para entrar. El avance clínico lo marca su terapeuta en sesión, no el módulo visto.</p>
+          <p className="lead">Cada paso tiene un responsable y lo que conviene tener listo antes. El avance clínico lo marca su terapeuta en sesión, no el módulo visto.</p>
         </div>
         <span className="chip info">{done} de {hub.steps.length} completados</span>
       </div>
@@ -65,21 +66,9 @@ async function Steps() {
                   </div>
                   {(!individual || mine) && s.description && <span className="small muted">{s.description}</span>}
                   {reqs.length > 0 ? (
-                    <div>
-                      <span className="small" style={{ fontWeight: 700 }}>Requisito para entrar:</span>
-                      <div className="reqs">
-                        {reqs.map((r) => {
-                          const ok = r.is_met || tone === "d";
-                          return (
-                            <span key={r.id} className={`req ${ok ? "ok" : "no"}`}>
-                              <Icon name={ok ? "check" : "lock"} size={13} /> {r.label ?? r.required_title}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <Reqs reqs={reqs} allDone={tone === "d"} title={s.activity_type === "therapy_session" ? "Para esta sesión es importante haber visto y completado:" : "Antes de este paso:"} />
                   ) : (
-                    <span className="small muted">Requisito para entrar: ninguno</span>
+                    <span className="small muted">Sin requisitos previos</span>
                   )}
                 </div>
               </div>

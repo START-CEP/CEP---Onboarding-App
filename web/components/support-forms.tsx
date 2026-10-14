@@ -9,7 +9,7 @@ function useResetOnOk(state: SupportState) {
   return ref;
 }
 
-export function NewTicket({ enrollmentId, couple }: { enrollmentId: string; couple: boolean }) {
+export function NewTicket({ enrollmentId }: { enrollmentId: string }) {
   const [state, action, pending] = useActionState<SupportState, FormData>(openTicket, {});
   const ref = useResetOnOk(state);
   return (
@@ -17,7 +17,6 @@ export function NewTicket({ enrollmentId, couple }: { enrollmentId: string; coup
       <input type="hidden" name="enrollment" value={enrollmentId} />
       <div className="field"><label htmlFor="subj">Asunto</label><input className="input" id="subj" name="subject" required maxLength={200} placeholder="Ej.: Cambio de método de pago" /></div>
       <div className="field"><label htmlFor="tbody">Tu consulta</label><textarea className="input" id="tbody" name="body" required maxLength={5000} rows={4} /></div>
-      {couple && <label className="check"><input type="checkbox" name="private" /> Que solo la vea yo (no mi pareja)</label>}
       {state.error && <p className="formerr" role="alert">{state.error}</p>}
       {state.ok && <p className="formok" role="status">{state.ok}</p>}
       <button className="btn" type="submit" disabled={pending} style={{ alignSelf: "flex-start" }}>{pending ? "Enviando…" : "Enviar consulta"}</button>

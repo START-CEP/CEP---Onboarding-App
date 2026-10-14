@@ -94,8 +94,8 @@ export function Field({ q, value, onChange, readOnly }: { q: Question; value: Js
 
 const empty = (v: Json | undefined) => v === undefined || v === null || v === "" || (Array.isArray(v) && v.length === 0);
 
-export function HomeworkForm({ activityId, returnTo, sections, initial, readOnly, partnerName, submitLabel = "Entregar tarea", sentLabel = "Tarea entregada." }: {
-  activityId: string; returnTo?: string; sections: Section[]; initial: Answers; readOnly: boolean; partnerName?: string;
+export function HomeworkForm({ activityId, returnTo, sections, initial, readOnly, submitLabel = "Entregar tarea", sentLabel = "Tarea entregada." }: {
+  activityId: string; returnTo?: string; sections: Section[]; initial: Answers; readOnly: boolean;
   submitLabel?: string; sentLabel?: string;
 }) {
   const stay = useStay(returnTo);
@@ -127,7 +127,7 @@ export function HomeworkForm({ activityId, returnTo, sections, initial, readOnly
           {sections.length > 1 && <h3>{s.title}</h3>}
           {s.description && <p className="muted">{s.description}</p>}
           <span className={`chip ${s.scope === "shared" ? "pair" : ""}`} style={{ alignSelf: "flex-start" }}>
-            {s.scope === "shared" ? <><Icon name="users" size={13} /> En pareja: la ven los dos</> : <><Icon name="lock" size={13} /> Individual: solo la lee el equipo{partnerName ? `, no ${partnerName}` : ""}</>}
+            {s.scope === "shared" ? <><Icon name="users" size={13} /> En pareja: queda en la ficha de los dos</> : <><Icon name="user" size={13} /> Individual: queda en tu ficha</>}
           </span>
           {s.questions.map((q, i) => (
             <div className="field" key={q.key}>

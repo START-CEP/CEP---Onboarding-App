@@ -83,11 +83,20 @@ export function stepRequirements(hub: Hub, stepId: string | null | undefined): R
     .sort((a, b) => Number(a.is_met) - Number(b.is_met) || (a.label ?? "").localeCompare(b.label ?? ""));
 }
 
+/** Para mostrar requisitos acumulados sin listar 9 chips: lo cumplido se resume, lo pendiente va uno a uno. */
+export function reqSummary<R extends { label: string | null; required_title?: string | null; is_met: boolean | null }>(reqs: R[]) {
+  const name = (r: R) => r.label ?? r.required_title ?? "";
+  const done = reqs.filter((r) => r.is_met);
+  const pending = reqs.filter((r) => !r.is_met);
+  const doneText = done.length === 0 ? "" : done.length === 1 ? name(done[0]) : `${name(done[0])} al ${name(done[done.length - 1])}`;
+  return { doneCount: done.length, doneText, pending: pending.map((r) => ({ ...r, label: name(r) })) };
+}
+
 function actionForRequirement(hub: Hub, r: RequirementRow, target: string): Action {
   const act = hub.activities.find((a) => a.activity_id === r.required_activity_id);
   const title = act?.title ?? r.required_title ?? "";
   const short = shortTitle(title);
-  const why = `${r.is_mandatory ? "Es obligatorio para" : "Lo necesitan para"} entrar a ${target}`;
+  const why = `${r.is_mandatory ? "Es indispensable para" : "Les sirve para"} entrar a ${target}`;
   const base = { why, href: hrefFor(hub, r.required_type ?? act?.type ?? "checklist", r.required_activity_id), minutes: act?.estimated_minutes };
 
   // Requisito que cumple cada miembro: si yo ya hice mi parte, lo que falta es de mi pareja.

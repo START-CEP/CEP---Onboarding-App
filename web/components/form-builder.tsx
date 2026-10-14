@@ -218,7 +218,7 @@ export function FormBuilder({ formId, initial, nextVersion }: {
                   <input className="fb-desc" value={section.description ?? ""} placeholder="Texto de introducción (opcional)" aria-label="Introducción"
                     onChange={(e) => patchSection(sel.s, { description: e.target.value })} />
                   <div className="fb-scope" role="radiogroup" aria-label="Quién responde">
-                    {([["individual", "lock", "Individual", "Cada uno responde por su cuenta. Solo lo lee el equipo."],
+                    {([["individual", "lock", "Individual", "Cada uno responde por su cuenta; queda en su ficha."],
                       ["shared", "users", "En pareja", "Una sola respuesta para los dos. La ven ambos."]] as const).map(([v, ic, t, d]) => (
                       <button key={v} type="button" role="radio" aria-checked={section.scope === v} className={section.scope === v ? "on" : ""}
                         onClick={() => patchSection(sel.s, { scope: v })}>

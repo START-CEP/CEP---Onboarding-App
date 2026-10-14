@@ -12,5 +12,5 @@ export const NAV: { href: string; label: string; short: string; icon: IconName }
   { href: "/terapia", label: "Sesiones de Terapia", short: "Terapia", icon: "heart" },
   { href: "/coaching", label: "Coaching Grupal", short: "Coaching", icon: "users" },
   { href: "/documentos", label: "Documentos", short: "Documentos", icon: "folder" },
-  { href: "/soporte", label: "Soporte", short: "Soporte", icon: "chat" },
+  { href: "/soporte", label: "Consultas al equipo", short: "Consultas", icon: "chat" },
 ];

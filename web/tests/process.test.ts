@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hiddenNav, nextSessionInfo, stepTone, upcoming } from "../lib/process.ts";
+import { hiddenNav, nextSessionInfo, reqSummary, stepTone, todayActions, upcoming } from "../lib/process.ts";
 import type { Hub } from "../lib/data/hub.ts";
 
 const today = new Date("2026-10-14T15:00:00Z");
@@ -113,4 +113,25 @@ test("sesión de un paso que aún no se abre: no ofrece agendar", () => {
 test("«Lo que viene» usa la misma sesión que la cuenta atrás", () => {
   const h = hub({ steps: [step({ step_id: "a", activity_key: "S3", state: "locked" }), step({ step_id: "b", activity_key: "S4", activity_id: "a4", state: "current" })], activities: [act({}), act({ activity_id: "a4" })] });
   assert.equal(upcoming(h)[0].d, "S4");
+});
+
+test("requisitos: los cumplidos se resumen y los pendientes van uno a uno", () => {
+  const r = (label: string, is_met: boolean) => ({ id: label, label, is_met });
+  const s = reqSummary([r("Módulo 0", true), r("Módulo 1", true), r("Módulo 2", true), r("Módulo 3", false), r("Módulo 4", false)]);
+  assert.equal(s.doneCount, 3);
+  assert.deepEqual(s.pending.map((x) => x.label), ["Módulo 3", "Módulo 4"]);
+  assert.equal(s.doneText, "Módulo 0 al Módulo 2");
+  assert.equal(reqSummary([r("Módulo 0", true)]).doneText, "Módulo 0");
+  assert.equal(reqSummary([]).doneCount, 0);
+});
+
+test("el «por qué» de una acción dice «indispensable», no «obligatorio»", () => {
+  const h = hub({
+    steps: [step({ blocking_unmet: 1 })],
+    activities: [act({}), act({ activity_id: "m3", type: "video_module", title: "Módulo 3 · El rol de la personalidad" })],
+    requirements: [{ id: "r1", target_step_id: "s1", required_activity_id: "m3", criterion: "viewed", is_mandatory: true, is_met: false, label: "Módulo 3" }] as never,
+  });
+  const [a] = todayActions(h);
+  assert.match(a.why, /indispensable/);
+  assert.doesNotMatch(a.why, /obligatorio/);
 });

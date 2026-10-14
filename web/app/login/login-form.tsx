@@ -11,7 +11,7 @@ export function LoginForm() {
       <div>
         <h2>Hola de nuevo</h2>
         <p className="muted small" style={{ marginTop: 6 }}>
-          Entra con tu correo y tu contraseña. Tu pareja tiene su propio acceso, y lo que escribes en tus tareas individuales lo ve solo el equipo.
+          Entra con tu correo y tu contraseña. Este acceso es solo para ti; tu pareja tiene el suyo.
         </p>
       </div>
       <div className="field">
