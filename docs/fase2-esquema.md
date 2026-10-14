@@ -7,7 +7,7 @@ Motor genérico de servicios: un servicio es solo datos, configurables desde adm
 ```bash
 supabase start          # levanta el stack en Docker (puertos 553xx, no choca con otros proyectos)
 supabase db reset       # aplica migraciones + seed de demo
-supabase test db        # 37 tests pgTAP (motor, privacidad, storage)
+supabase test db        # 45 tests pgTAP (motor, privacidad, storage)
 supabase db lint        # sin errores
 supabase gen types typescript --local > types/database.ts
 ```
@@ -80,6 +80,7 @@ Funciones: `enroll_unit`, `publish_service_version` (valida responsables, formul
 | `…11_storage.sql` | buckets privados y políticas |
 | `…12_publish_and_clone.sql` | publicar y clonar |
 | `…13_bunny_video.sql` | videos en Bunny Stream |
+| `…14_authz_hardening.sql` | endurecimiento de permisos (revisión de seguridad) |
 | `supabase/seed/*.sql` | usuarios, 3 servicios, pareja en el paso 9 |
 | `supabase/tests/*.test.sql` | tests pgTAP |
 | `types/database.ts` | tipos para la app |
