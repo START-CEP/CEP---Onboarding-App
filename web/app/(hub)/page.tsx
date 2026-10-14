@@ -5,8 +5,8 @@ import { Icon } from "@/components/icon";
 import { getHub, type Hub } from "@/lib/data/hub";
 import { getStaff } from "@/lib/data/staff";
 import {
-  blocksOf, currentStep, firstName, fmtDay, fmtTime, nextGroupSession, roleClass, staffFor, stepLabel,
-  lateActivities, stepRequirements, stepTarget, todayActions, trackLines, weekGrid, weekOf,
+  blocksOf, currentStep, firstName, fmtDay, fmtTime, nextSessionInfo, roleClass, staffFor, stepLabel,
+  lateActivities, stepRequirements, stepTarget, todayActions, trackLines, upcoming, weekGrid, weekOf,
 } from "@/lib/process";
 
 export default function ProcessPage() {
@@ -45,7 +45,7 @@ async function Process() {
           </div>
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
             <StatusChip hub={hub} />
-            <Link className="btn ghost sm" href="/pasos">Ver el proceso completo <Icon name="arrow" size={14} /></Link>
+            <Link className="btn ghost sm" href="/proceso">Ver el proceso completo <Icon name="arrow" size={14} /></Link>
           </div>
         </div>
         <Gantt hub={hub} total={total} months={months} todayWeek={todayWeek} />
@@ -61,7 +61,7 @@ async function Process() {
                 <div className="li" key={a.title}>
                   <span className="ico info"><Icon name={a.icon} /></span>
                   <div className="tx"><b>{a.title}</b><span>{a.why}</span></div>
-                  <Link className="btn soft sm" href={a.href}>{a.minutes ? `${a.minutes} min` : "Ir"}</Link>
+                  <Link className="btn soft sm" href={a.href}>{a.cta}{a.minutes ? ` · ${a.minutes} min` : ""}</Link>
                 </div>
               ))}
             </div>
@@ -101,6 +101,7 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
   const unmet = reqs.filter((r) => !r.is_met).length;
   const total = hub.steps.length;
   const blocks = blocksOf(hub);
+  const next = nextSessionInfo(hub);
 
   return (
     <section className="hero">
@@ -115,6 +116,20 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
         </div>
         <StatusChip hub={hub} />
       </div>
+
+      {next && (
+        <div className={`countdown ${roleClass(next.roleKey)}`}>
+          <div className="num">
+            {next.days === null ? <Icon name="cal" size={30} /> : next.days === 0 ? "Hoy" : <>{next.days}<small>{next.days === 1 ? "día" : "días"}</small></>}
+          </div>
+          <div className="tx">
+            <span className="k">{next.days === null ? (next.state === "requested" ? "Solicitud enviada" : "Su siguiente sesión") : next.days === 0 ? "Su sesión es hoy" : "Faltan para su siguiente sesión"}</span>
+            <b>{next.title}{next.staffName ? ` · con ${firstName(next.staffName)}` : ""}</b>
+            <span className="why">{next.when ? `${fmtDay(next.when)} · ${fmtTime(next.when)}` : next.state === "blocked" ? "Aún no pueden agendarla: les falta un requisito." : next.state === "ready" ? "Ya pueden agendarla." : "El equipo les confirmará la hora."}</span>
+          </div>
+          <Link className="btn" href={next.cta.href} {...(next.cta.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>{next.cta.label} <Icon name="arrow" size={16} /></Link>
+        </div>
+      )}
 
       {!step ? (
         <p className="lead">Completaron su proceso. ¡Felicidades!</p>
@@ -182,7 +197,7 @@ function Hero({ hub, name, first }: { hub: Hub; name: string; first?: ReturnType
             </div>
           )}
           <Link className="btn" href={first.href}>
-            Empezar{first.minutes ? ` · ${first.minutes} min` : ""} <Icon name="arrow" size={16} />
+            {first.cta}{first.minutes ? ` · ${first.minutes} min` : ""} <Icon name="arrow" size={16} />
           </Link>
         </div>
       )}
@@ -246,34 +261,17 @@ function TrackRow({ line, cols, today }: { line: ReturnType<typeof trackLines>[n
 }
 
 function Upcoming({ hub }: { hub: Hub }) {
-  const step = currentStep(hub);
-  const items: { d: string; sm: string; t: string; s: string; role?: string; who?: string }[] = [];
-  if (step?.activity_type === "therapy_session") {
-    const staff = staffFor(hub, step.responsible_role_id);
-    const booked = hub.sessions.find((x) => x.enrollment_activity_id === step.activity_id && x.scheduled_at && x.status !== "cancelled");
-    const blocked = (step.blocking_unmet ?? 0) > 0;
-    items.push({
-      d: booked?.scheduled_at ? fmtDay(booked.scheduled_at) : step.activity_key ?? "",
-      sm: booked?.scheduled_at ? fmtTime(booked.scheduled_at) : blocked ? "por agendar" : "lista para agendar",
-      t: step.title ?? "",
-      s: staff ? `Con ${staff.personName}` : "",
-      role: staff?.roleKey,
-      who: staff?.personName,
-    });
-  }
-  const g = nextGroupSession(hub);
-  if (g) {
-    const isToday = new Date(g.scheduled_at).toDateString() === hub.today.toDateString();
-    items.push({ d: fmtDay(g.scheduled_at), sm: `${isToday ? "hoy · " : ""}${fmtTime(g.scheduled_at)}`, t: "Coaching grupal", s: g.title ?? "" });
-  }
+  const items = upcoming(hub);
   if (items.length === 0) return <p className="muted" style={{ marginTop: 12 }}>No hay nada agendado por ahora.</p>;
   return (
     <div className="list" style={{ marginTop: 12 }}>
       {items.map((u) => (
-        <div className="li" key={u.t}>
+        <div className={`li${u.role ? ` upc ${roleClass(u.role)}` : ""}`} key={u.t}>
           <span className="d">{u.d}<small>{u.sm}</small></span>
           <div className="tx"><b>{u.t}</b><span>{u.s}</span></div>
-          {u.who && <span className={`whochip ${roleClass(u.role)}`}><i>{u.who.charAt(0)}</i>{firstName(u.who)}</span>}
+          {u.cta && (
+            <Link className="btn soft sm" href={u.cta.href} {...(u.cta.href.startsWith("http") ? { target: "_blank", rel: "noreferrer" } : {})}>{u.cta.label}</Link>
+          )}
         </div>
       ))}
     </div>

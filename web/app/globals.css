@@ -155,9 +155,10 @@ td b{font-weight:700}
 .path .c.d{background:#43D3C7;color:#071027}
 .path .c.n{background:#F6C35B;color:#1A1203;height:56px;margin-top:-5px;box-shadow:0 0 0 4px rgba(246,195,91,.18)}
 /* Sesiones: la casilla entera lleva el color de quien la da */
-.path .c.ses{box-shadow:inset 0 -5px 0 var(--wc);background:color-mix(in srgb,var(--wc) 32%,rgba(255,255,255,.06));color:#fff}
-.path .c.ses.d{background:#43D3C7;color:#071027;box-shadow:inset 0 -5px 0 var(--wc)}
-.path .c.ses.n{background:#F6C35B;color:#1A1203;box-shadow:inset 0 -6px 0 var(--wc),0 0 0 4px rgba(246,195,91,.18)}
+.path .c.ses{background:var(--wc);color:#fff;opacity:.6}
+.path .c.ses.d{background:var(--wc);color:#fff;opacity:1;box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
+.path .c.ses.d::after{content:"✓";position:absolute;top:2px;right:4px;font-size:10px}
+.path .c.ses.n{background:var(--wc);color:#fff;opacity:1;box-shadow:0 0 0 3px #F6C35B,0 0 0 7px rgba(246,195,91,.25)}
 .hero .w-emilia{--wc:#A78BFA}.hero .w-psico{--wc:#5EBAD6}.hero .w-diego{--wc:#F59E6B}
 .herolegend{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px}
 .hero .whochip{background:color-mix(in srgb,var(--wc) 22%,transparent);color:#fff}
@@ -200,7 +201,7 @@ td b{font-weight:700}
 .gm.dot{width:13px;height:13px;border-radius:50%;justify-self:center;margin:0}
 .gm.x{border-color:var(--crit);color:var(--crit);background:var(--crit-soft)}
 /* Sesiones en el cuadro: la caja lleva el color de quien la da */
-.gm.ses{border-width:2px;border-color:var(--wc);color:var(--wc);background:color-mix(in srgb,var(--wc) 10%,var(--surface))}
+.gm.ses{border-width:2px;border-color:var(--wc);color:var(--wc);background:color-mix(in srgb,var(--wc) 22%,var(--surface))}
 .gm.ses.d{background:var(--wc);color:#fff}
 .gm.ses.n{background:var(--hi);color:#1A1203;box-shadow:0 0 0 2px var(--wc)}
 .gm.ses.l{border-style:dashed}
@@ -393,3 +394,14 @@ a.who:hover{background:var(--surface2)}
 .ae details>summary{cursor:pointer;font-weight:700;font-size:13px;color:var(--muted)}
 .miniform{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .miniform .input{padding:8px 11px}
+
+/* ---------- Ronda 1: cuenta atrás y agenda por profesional ---------- */
+.countdown{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;padding:16px 18px;border-radius:var(--rad);background:color-mix(in srgb,var(--wc,#43D3C7) 26%,rgba(255,255,255,.04));border:2px solid var(--wc,#43D3C7);margin:6px 0 4px}
+.countdown .num{font-family:var(--display);font-weight:800;font-size:44px;line-height:1;color:#fff;display:flex;align-items:baseline;gap:6px;min-width:64px}
+.countdown .num small{font-size:14px;font-weight:700;opacity:.85}
+.countdown .tx{display:flex;flex-direction:column;gap:2px;color:#fff;min-width:0}
+.countdown .k{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;opacity:.85}
+.countdown b{font-size:18px}
+.countdown .why{font-size:13px;opacity:.85}
+@media(max-width:700px){.countdown{grid-template-columns:auto minmax(0,1fr)}.countdown .btn{grid-column:1/-1;justify-content:center}.countdown .num{font-size:34px}}
+.li.upc{border-left:4px solid var(--wc);padding-left:12px;background:color-mix(in srgb,var(--wc) 7%,transparent);border-radius:var(--rad-s)}
