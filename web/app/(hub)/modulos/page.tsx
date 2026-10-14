@@ -6,7 +6,7 @@ import { Icon } from "@/components/icon";
 import { bunnyEmbedUrl } from "@/lib/bunny";
 import { getHub } from "@/lib/data/hub";
 import { getModules, type ModuleDetail, type ModuleItem } from "@/lib/data/modules";
-import { firstName, fmtDay } from "@/lib/process";
+import { firstName, fmtDay, keyRange } from "@/lib/process";
 import { extrasPlan, parseItems } from "@/lib/activity-config";
 import { assets, signedContentUrl } from "@/lib/data/extra";
 import { Video as AssetVideo } from "@/components/video";
@@ -64,7 +64,7 @@ async function Modules({ searchParams }: { searchParams: PageProps<"/modulos">["
                     <span className={`ico ${s.cls}`}><Icon name={s.icon} /></span>
                     <div className="tx">
                       <b>{m.title}</b>
-                      <span>{m.status === "done" && !m.hasTask ? "Visto" : m.status === "available" && m.taskSent ? "Tarea entregada · falta ver el video" : s.text}{m.requiredFor.length ? ` · para ${m.requiredFor.join(", ")}` : ""}</span>
+                      <span>{m.status === "done" && !m.hasTask ? "Visto" : m.status === "available" && m.taskSent ? "Tarea entregada · falta ver el video" : s.text}{m.requiredFor.length ? ` · para ${keyRange(m.requiredFor)}` : ""}</span>
                     </div>
                   </Link>
                 </div>
@@ -89,7 +89,7 @@ function Detail({ d, items, extras, tab, meId, partner }: { d: ModuleDetail; ite
         {partner && d.partnerViewed !== null && (
           <span className={`chip ${d.partnerViewed ? "ok" : ""}`}>{partner}: {d.partnerViewed ? "lo vio" : "aún no lo ve"}</span>
         )}
-        {d.requiredFor.length > 0 && <span className="chip warn"><Icon name="lock" size={13} /> Requisito para {d.requiredFor.join(", ")}</span>}
+        {d.requiredFor.length > 0 && <span className="chip warn"><Icon name="lock" size={13} /> Indispensable para {keyRange(d.requiredFor)}</span>}
       </div>
 
       {d.form && !locked && (

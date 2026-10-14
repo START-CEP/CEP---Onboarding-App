@@ -394,3 +394,10 @@ export function hiddenNav(hub: Hub): string[] {
   ];
   return rules.filter(([, list]) => all(list)).map(([href]) => href);
 }
+
+/** «S1 a S9» en vez de listar nueve claves. */
+export function keyRange(keys: string[]) {
+  if (keys.length <= 1) return keys[0] ?? "";
+  if (keys.length === 2) return `${keys[0]} y ${keys[1]}`;
+  return `${keys[0]} a ${keys[keys.length - 1]}`;
+}

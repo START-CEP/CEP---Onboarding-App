@@ -29,7 +29,7 @@ async function Coaching({ searchParams }: { searchParams: PageProps<"/coaching">
   const [{ data: full }, { data: resources }, { data: questions }] = await Promise.all([
     supabase.from("group_sessions").select("id, recording_asset_id, meeting_url").in("id", ids),
     supabase.from("resources").select("id, title, asset_id, attach_id").eq("attach_type", "group_session").in("attach_id", ids).order("position"),
-    supabase.from("group_session_questions").select("id, group_session_id, body, status, created_at").eq("profile_id", me.id).order("created_at", { ascending: false }),
+    supabase.from("group_session_questions").select("id, group_session_id, body, status, created_at").eq("profile_id", me.id).eq("enrollment_id", hub.enrollment.enrollment_id!).order("created_at", { ascending: false }),
   ]);
   const assetMap = await assets([...(full ?? []).map((g) => g.recording_asset_id ?? ""), ...(resources ?? []).map((r) => r.asset_id)]);
   const links = new Map(await Promise.all((resources ?? []).map(async (r) => {

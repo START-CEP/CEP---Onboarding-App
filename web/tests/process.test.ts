@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hiddenNav, nextSessionInfo, reqSummary, stepTone, todayActions, upcoming } from "../lib/process.ts";
+import { hiddenNav, keyRange, nextSessionInfo, reqSummary, stepTone, todayActions, upcoming } from "../lib/process.ts";
 import type { Hub } from "../lib/data/hub.ts";
 
 const today = new Date("2026-10-14T15:00:00Z");
@@ -134,4 +134,11 @@ test("el «por qué» de una acción dice «indispensable», no «obligatorio»"
   const [a] = todayActions(h);
   assert.match(a.why, /indispensable/);
   assert.doesNotMatch(a.why, /obligatorio/);
+});
+
+test("lista de sesiones: más de dos se resume como rango", () => {
+  assert.equal(keyRange(["S5"]), "S5");
+  assert.equal(keyRange(["S4", "S5"]), "S4 y S5");
+  assert.equal(keyRange(["S1", "S2", "S3", "S9"]), "S1 a S9");
+  assert.equal(keyRange([]), "");
 });
