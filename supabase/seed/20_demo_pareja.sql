@@ -1,27 +1,24 @@
--- Datos de demo: Pedro y Andrea en el paso 9 del proceso de pareja (igual que la maqueta),
--- y Mónica en terapia individual. Solo local.
+-- Datos de demo: Pedro y Andrea en el paso 9 del proceso de pareja (igual que la maqueta).
+-- Se usa en local y en la nube.
 
 do $$
 declare
   pedro  uuid := 'b0000000-0000-4000-8000-000000000001';
   andrea uuid := 'b0000000-0000-4000-8000-000000000002';
-  monica uuid := 'b0000000-0000-4000-8000-000000000003';
   emilia uuid := 'a0000000-0000-4000-8000-000000000002';
   psico  uuid := 'a0000000-0000-4000-8000-000000000003';
   diego  uuid := 'a0000000-0000-4000-8000-000000000004';
   yasna  uuid := 'a0000000-0000-4000-8000-000000000005';
   u_pa uuid := '0a000000-0000-4000-8000-000000000001';
-  u_mo uuid := '0a000000-0000-4000-8000-000000000002';
   e uuid;
   s1 uuid;
   i int;
   s_staff uuid[];
 begin
   insert into public.client_units (id, kind, display_name) values
-    (u_pa, 'couple', 'Pedro y Andrea'),
-    (u_mo, 'individual', 'Mónica Vidal');
+    (u_pa, 'couple', 'Pedro y Andrea');
   insert into public.client_unit_members (unit_id, profile_id, member_index) values
-    (u_pa, pedro, 1), (u_pa, andrea, 2), (u_mo, monica, 1);
+    (u_pa, pedro, 1), (u_pa, andrea, 2);
 
   e := public.enroll_unit(u_pa, '5e100000-0000-4000-8000-000000000001', date '2026-09-01',
          jsonb_build_object('lead_therapist', emilia, 'psychologist', psico,
@@ -103,7 +100,4 @@ begin
   select g.id, e, pedro, '¿Cómo pedir una pausa sin que la otra persona lo sienta como rechazo?'
   from public.group_sessions g where g.status = 'scheduled' order by g.scheduled_at limit 1;
 
-  -- Mónica: terapia individual con Emilia como responsable (la psicóloga no está asignada)
-  perform public.enroll_unit(u_mo, '5e100000-0000-4000-8000-000000000002', date '2026-10-01',
-                             jsonb_build_object('psychologist', emilia));
 end $$;
