@@ -45,7 +45,8 @@ export function weekOf(hub: Hub, date: Date | string) {
 }
 
 export function fmtDay(date: string | Date) {
-  const d = typeof date === "string" ? new Date(date) : date;
+  // Una fecha sin hora ("2026-09-01") se muestra tal cual, sin desplazarla por la zona horaria.
+  const d = typeof date === "string" ? new Date(date.length === 10 ? `${date}T12:00:00Z` : date) : date;
   return d.toLocaleDateString("es", { day: "numeric", month: "short", timeZone: "America/Mexico_City" }).replace(".", "");
 }
 

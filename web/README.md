@@ -1,6 +1,12 @@
 # App web (Next.js 16)
 
-Hub de la pareja conectado a Supabase. Por ahora: login individual, **El proceso** (camino de pasos, "la página de hoy", cuadro de áreas, lo que viene) y **Los pasos**. El resto del menú está marcado como "próximamente".
+Hub conectado a Supabase con tres áreas:
+
+- **Pareja** (`/`): el proceso, los pasos, bienvenida, contrato (firma), radiografía, módulos (video + tarea), sesiones de terapia (pedir cita) y coaching grupal (grabaciones, recursos, preguntas).
+- **Equipo** (`/equipo`): parejas y solicitudes de sesión, ficha de cada pareja (agendar, notas clínicas, qué veremos, requisitos, onboarding, respuestas) y coaching grupal.
+- **Admin** (`/equipo/...`): servicios (borrador → publicar, crear y duplicar), videos en Bunny y PDFs, inscribir parejas con invitación.
+
+Acceso: invitación por email → `/auth/aceptar` → crear contraseña; recuperar en `/recuperar`.
 
 ## Local
 
@@ -18,9 +24,10 @@ Lee las variables de `web/.env.local` (enlace simbólico a `../.env.local`).
 |---|---|
 | Framework | Next.js |
 | Root Directory | `web` |
-| Variables de entorno | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Variables **Config** (públicas) | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` |
+| Variables **Secret** (solo servidor) | `SUPABASE_SERVICE_ROLE_KEY` (inscribir parejas e invitar), `BUNNY_STREAM_LIBRARY_ID`, `BUNNY_STREAM_API_KEY`, `BUNNY_STREAM_TOKEN_AUTH_KEY` (videos) |
 
-No hace falta la `SUPABASE_SERVICE_ROLE_KEY` en Vercel para esta versión.
+La `SUPABASE_SERVICE_ROLE_KEY` solo la usa el servidor al inscribir, después de comprobar que quien lo pide es ventas o admin.
 
 Después del primer despliegue, en Supabase → Authentication → URL Configuration:
 - **Site URL**: la URL de Vercel.

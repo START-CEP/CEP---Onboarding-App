@@ -24,9 +24,11 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getClaims();
   const signedIn = Boolean(data?.claims?.sub);
-  const onLogin = request.nextUrl.pathname.startsWith("/login");
+  const path = request.nextUrl.pathname;
+  const onLogin = path.startsWith("/login") || path.startsWith("/recuperar");
+  const isPublic = onLogin || path.startsWith("/auth/");
 
-  if (!signedIn && !onLogin) {
+  if (!signedIn && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
   if (signedIn && onLogin) {

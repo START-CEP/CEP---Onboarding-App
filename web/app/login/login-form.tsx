@@ -27,7 +27,7 @@ export function LoginForm() {
       <button className="btn" type="submit" style={{ justifyContent: "center" }} disabled={pending}>
         {pending ? "Entrando…" : "Entrar"} <Icon name="arrow" size={16} />
       </button>
-      <p className="small muted">¿Primera vez? Usa el enlace que te enviamos por email al confirmar tu proceso.</p>
+      <p className="small muted">¿Primera vez? Usa el enlace que te enviamos por email. <a href="/recuperar" style={{ textDecoration: "underline" }}>¿Olvidaste tu contraseña?</a></p>
     </form>
   );
 }

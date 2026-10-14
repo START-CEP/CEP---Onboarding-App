@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Icon } from "@/components/icon";
 import { getHub, type Hub } from "@/lib/data/hub";
+import { getStaff } from "@/lib/data/staff";
 import {
   blocksOf, currentStep, firstName, fmtDay, fmtTime, nextGroupSession, roleClass, staffFor, stepLabel,
   stepRequirements, stepTarget, todayActions, trackLines, weekGrid, weekOf,
@@ -17,6 +19,7 @@ export default function ProcessPage() {
 
 async function Process() {
   const { me, hub } = await getHub();
+  if (!hub && (await getStaff())) redirect("/equipo");
   if (!me || !hub) {
     return (
       <section className="card empty">
